@@ -88,12 +88,10 @@ Output bundles appear in `src-tauri/target/release/bundle/`:
 apps/desktop/
 ├── src/                          # React frontend
 │   ├── components/
-│   │   ├── ui/                   # Primitive components: Button, Input, Badge, Spinner
-│   │   ├── layout/               # AppShell, Sidebar, PageContainer
-│   │   ├── dictionary/           # SearchBar, SearchResultCard, SearchResultList
-│   │   ├── cards/                # FlashCardTile, CardGrid, CardDetail
-│   │   ├── collections/          # CollectionList, CollectionBadge, CollectionForm
-│   │   └── review/               # FlipCard, ReviewControls, SessionStats, ProgressBar
+│   │   ├── atoms/                # Button, Input, Badge, Spinner, ProgressBar
+│   │   ├── molecules/            # SearchBar, SearchResultCard, FlashCardTile, CollectionBadge, CollectionForm, ReviewControls
+│   │   ├── organisms/            # SearchResultList, CardGrid, CardDetail, CollectionList, FlipCard, SessionStats, Sidebar
+│   │   └── templates/            # AppShell, PageContainer
 │   ├── pages/
 │   │   ├── SearchPage.tsx
 │   │   ├── LibraryPage.tsx
