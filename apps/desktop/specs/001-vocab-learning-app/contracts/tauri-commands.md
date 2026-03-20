@@ -8,6 +8,41 @@ Errors from Rust (`Err(e)`) surface as rejected promises with a string message (
 
 ---
 
+## Command Design Rules
+
+- Commands return structured success and failure payloads.
+- User-facing validation failures must include actionable messages.
+- Commands performing writes are explicit and never implied by reads.
+- Commands must remain offline-safe and operate only on local resources for MVP flows.
+
+## Shared Result Shapes
+
+### Success Result
+
+```typescript
+type CommandSuccess<T> = {
+  ok: true
+  data: T
+}
+```
+
+### Failure Result
+
+```typescript
+type CommandFailure = {
+  ok: false
+  code:
+    | "INVALID_INPUT"
+    | "FILE_READ_FAILED"
+    | "PARSE_FAILED"
+    | "NOT_FOUND"
+    | "CONFLICT"
+    | "PERSISTENCE_FAILED"
+    | "UNEXPECTED_ERROR"
+  message: string
+}
+```
+
 ## Dictionary Commands
 
 ### `search_dictionary`
