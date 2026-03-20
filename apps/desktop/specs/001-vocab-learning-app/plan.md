@@ -14,7 +14,7 @@ Build a fully offline Tauri v2 desktop application for vocabulary learning. User
 ## Technical Context
 
 **Language/Version**: Rust 1.75+ (Tauri v2 backend), TypeScript 5.x (React 18 frontend)
-**Primary Dependencies**: Tauri v2, React 18, Zustand 5, styled-components v6, rusqlite 0.31 (bundled + fts5), r2d2 + r2d2_sqlite, encoding_rs, nom 7, react-router-dom v6
+**Primary Dependencies**: Tauri v2, React 18, Zustand 5, styled-components v6, semantic-ui-react 3 + semantic-ui-css, rusqlite 0.31 (bundled + fts5), r2d2 + r2d2_sqlite, encoding_rs, nom 7, react-router-dom v6
 **Storage**: SQLite with FTS5 — `rusqlite` with `bundled` feature (guaranteed FTS5 on macOS and Windows)
 **Testing**: `cargo test` (Rust core), Vitest + @testing-library/react (frontend)
 **Target Platform**: macOS and Windows desktop (Tauri v2)
@@ -63,7 +63,7 @@ specs/001-vocab-learning-app/
 apps/desktop/
 ├── src/                              # React frontend
 │   ├── components/
-│   │   ├── atoms/                    # Button, Input, Badge, Spinner, ProgressBar
+│   │   ├── atoms/                    # Thin wrappers / extensions of Semantic UI React primitives (Button, Input, Label, Loader, Progress)
 │   │   ├── molecules/                # SearchBar, SearchResultCard, FlashCardTile, CollectionBadge, CollectionForm, ReviewControls
 │   │   ├── organisms/                # SearchResultList, CardGrid, CardDetail, CollectionList, FlipCard, SessionStats, Sidebar
 │   │   └── templates/                # AppShell, PageContainer
@@ -129,6 +129,7 @@ apps/desktop/
 | `r2d2` connection pool | SC-005: app must stay responsive during import | Single `Mutex<Connection>` blocks all reads while write-heavy import runs on the single connection |
 | FTS5 virtual table (in addition to `entries` table) | SC-001: < 500ms search on 500k entries | LIKE queries on plain `entries.headword` are 2–10s on large datasets; FTS5 prefix index is the only viable path |
 | `encoding_rs` dependency | DSL files may be UTF-16 LE | Rust `std` has no UTF-16 decoder; this is a one-dependency solution to a real requirement |
+| `semantic-ui-react` + `semantic-ui-css` | Pre-built accessible UI components (forms, modals, labels, progress, cards) avoids building atoms from scratch | Hand-rolling `styled-components` primitives for each atom adds significant churn with no UX benefit for an MVP; Semantic UI ships keyboard-accessible components by default |
 
 ---
 

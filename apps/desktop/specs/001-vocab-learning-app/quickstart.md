@@ -10,7 +10,7 @@
 |------|---------|---------|
 | Rust | 1.75+ | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
 | Node.js | 20+ LTS | [nodejs.org](https://nodejs.org) or `brew install node` |
-| pnpm | 8+ | `npm install -g pnpm` |
+| npm | 8+ | `npm install -g npm` |
 | Tauri CLI v2 | 2.x | `cargo install tauri-cli --version "^2"` |
 
 **macOS only**: Xcode Command Line Tools required (`xcode-select --install`).
@@ -26,7 +26,7 @@
 cd apps/desktop
 
 # Install JS dependencies
-pnpm install
+npm install
 
 # Verify Tauri environment
 cargo tauri info
@@ -41,7 +41,7 @@ cargo tauri info
 cargo tauri dev
 
 # Frontend only (no Tauri window — useful for component work)
-pnpm dev
+npm dev
 ```
 
 The SQLite database is created automatically on first launch at:
@@ -58,13 +58,13 @@ cd src-tauri
 cargo test
 
 # Frontend tests
-pnpm test
+npm test
 
 # Frontend tests with UI
-pnpm test --ui
+npm test --ui
 
 # Frontend coverage
-pnpm test --coverage
+npm test --coverage
 ```
 
 ---
@@ -196,7 +196,7 @@ tempfile = "3"
 ## TDD Workflow (Constitution §III)
 
 1. Write the test (Rust `#[test]` or Vitest `it(...)`) — commit.
-2. Show test fails: `cargo test` or `pnpm test`.
+2. Show test fails: `cargo test` or `npm test`.
 3. Implement the minimum code to make the test pass.
 4. Refactor with tests green.
 
