@@ -26,9 +26,12 @@
 
 **Rationale**: The product must stay responsive with large dictionaries. SQLite indexing keeps search local and fast, while normalized fields support prefix and partial lookup. This is the simplest design that still scales beyond small hobby datasets.
 
+**Scope note**: The FTS index covers `normalized_headword` only. `definition_text` and `example_text` are stored in SQLite but are NOT included in the FTS index. Searching inside definition or translation text is out of scope for the MVP, as per spec clarification (FR-005).
+
 **Alternatives considered**:
 - In-memory search only: rejected because large dictionaries would increase startup cost and memory use.
 - A dedicated search engine: rejected because it introduces unnecessary operational complexity for a local desktop MVP.
+- Full-text indexing across all entry fields: rejected because it multiplies the FTS index size, slows writes, and produces noisier results for a headword-lookup tool.
 
 ## Decision 4: Keep Zustand limited to UI and session state, not canonical content
 
@@ -59,6 +62,16 @@
 **Alternatives considered**:
 - Rely on manual testing only: rejected because parser, search, and local data changes are too easy to regress silently.
 - Introduce full desktop end-to-end automation immediately: rejected because it adds tooling complexity before the UI contracts stabilize.
+
+## Decision 8: Use Tauri v2 Channel for import progress streaming
+
+**Decision**: `import_dictionary` accepts a `Channel<ImportProgressEvent>` parameter. The Rust importer emits `processedEntries`, optional `totalEstimate`, and `phase` updates at regular intervals during parsing and indexing. The frontend creates the channel before invoking and updates the progress UI via `onmessage`. The channel is dropped automatically after the command resolves.
+
+**Rationale**: FR-001b requires a visible progress indicator for large dictionary imports. With up to 200,000 entries, a synchronous request-response command would block the webview for potentially tens of seconds. Tauri v2 `Channel` is typed, backpressure-safe, requires no global listener registration, and is the recommended modern pattern for streaming progress from Rust commands.
+
+**Alternatives considered**:
+- `app.emit()` events: rejected because listener lifecycle management is manual, cleanup must be explicit, and event ordering under load is not guaranteed.
+- Polling a status command: rejected because it adds round-trip overhead and complicates the import state machine.
 
 ## Decision 7: Restrict native capabilities to the minimum required for local files, dialogs, and SQL access
 

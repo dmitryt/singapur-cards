@@ -1,7 +1,7 @@
 # Implementation Plan: Desktop Vocabulary Learning MVP
 
-**Branch**: `002-desktop-vocab-learning` | **Date**: 2026-03-20 | **Spec**: [`specs/002-desktop-vocab-learning/spec.md`](./spec.md)
-**Input**: Feature specification from `specs/002-desktop-vocab-learning/spec.md`
+**Branch**: `001-desktop-vocab-learning` | **Date**: 2026-03-20 | **Spec**: [`specs/001-desktop-vocab-learning/spec.md`](./spec.md)
+**Input**: Feature specification from `specs/001-desktop-vocab-learning/spec.md`
 
 ## Summary
 
@@ -16,7 +16,7 @@ Build a desktop-first, offline vocabulary learning application with Tauri v2. Us
 **Target Platform**: Desktop application for macOS, Windows, and Linux
 **Project Type**: Desktop app
 **Performance Goals**: 95% of searches return results or an explicit no-results state within 1 second; review interactions feel immediate; importing large dictionaries does not freeze the UI thread
-**Constraints**: Fully offline for MVP flows, local-data-safe, keyboard and mouse friendly, able to handle multiple dictionaries and hundreds of thousands of entries, minimal background processing, no cloud dependency
+**Constraints**: Fully offline for MVP flows, local-data-safe, keyboard and mouse friendly, able to handle multiple dictionaries up to 200,000 entries each, minimal background processing, no cloud dependency
 **Scale/Scope**: Single-user desktop app, multiple imported dictionaries, thousands of saved cards, and enough local content volume to support serious vocabulary study
 
 ## Constitution Check
@@ -44,7 +44,7 @@ Build a desktop-first, offline vocabulary learning application with Tauri v2. Us
 ### Documentation (this feature)
 
 ```text
-specs/001-vocab-learning-app/
+specs/001-desktop-vocab-learning/
 ├── plan.md              # This file
 ├── research.md          # Phase 0 output
 ├── data-model.md        # Phase 1 output
@@ -98,7 +98,7 @@ apps/desktop/
 │   │   │   ├── parser.rs             # Line-by-line state machine + nom tag parser
 │   │   │   └── importer.rs           # Streaming import + progress callback
 │   │   ├── commands/
-│   │   │   ├── dictionary.rs         # search_dictionary, import_dictionary, load_dictionaries, delete_dictionary
+│   │   │   ├── dictionary.rs         # import_dictionary, list_dictionaries, remove_dictionary, search_entries, get_entry_detail
 │   │   │   ├── cards.rs              # save_card, load_cards, update_card, delete_card
 │   │   │   ├── collections.rs        # create/rename/delete_collection, assign/remove card
 │   │   │   └── review.rs             # start_review_session, end_review_session
@@ -123,6 +123,14 @@ No constitution violations or exception justifications are required for this pla
 
 ## Key Design Decisions
 
+### Import progress uses Tauri v2 Channel, not app events
+
+`import_dictionary` accepts an `on_progress: Channel<ImportProgressEvent>` parameter. The Rust importer emits `processedEntries` and `phase` updates at regular intervals during parsing and indexing. The frontend creates the channel before invoking and lets it drop after the command resolves. This satisfies FR-001b (visible progress required) without introducing a global event listener or manual cleanup. Tauri v2 `Channel` is typed, backpressure-safe, and the recommended modern pattern over `app.emit()`.
+
+### Review session ordering is enforced server-side
+
+`start_review_session` orders `sessionCardIds` in Rust before returning: `unreviewed` cards first, then `not_learned`, then `learned`, randomized within each group. The frontend treats the returned slice as an immutable ordered queue and MUST NOT re-sort it. This keeps the ordering logic testable in Rust unit tests rather than buried in UI store logic.
+
 ### Cards are immutable copies at creation time
 
 Cards store a snapshot of the dictionary entry. After creation, the card is independent — no foreign key to `entries`. This satisfies II (Local Data Safety) but means cards never auto-update if a dictionary is re-imported with corrections. Acceptable for MVP per spec assumptions.
@@ -139,9 +147,9 @@ All mutations: invoke Rust command first → update Zustand state only on succes
 
 ## Artifacts
 
-| File | Description |
-|------|-------------|
-| `research.md` | Technology decisions with rationale |
-| `data-model.md` | SQLite schema, entity definitions, state transitions |
-| `quickstart.md` | Dev setup, directory structure, Cargo/npm dependencies |
+| File                          | Description                                               |
+| ----------------------------- | --------------------------------------------------------- |
+| `research.md`                 | Technology decisions with rationale                       |
+| `data-model.md`               | SQLite schema, entity definitions, state transitions      |
+| `quickstart.md`               | Dev setup, directory structure, Cargo/npm dependencies    |
 | `contracts/tauri-commands.md` | All Tauri command signatures (args, return types, errors) |

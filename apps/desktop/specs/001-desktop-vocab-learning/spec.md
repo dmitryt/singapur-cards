@@ -1,6 +1,6 @@
 # Feature Specification: Desktop Vocabulary Learning MVP
 
-**Feature Branch**: `002-desktop-vocab-learning`
+**Feature Branch**: `001-desktop-vocab-learning`
 **Created**: 2026-03-20
 **Status**: Draft
 **Input**: User description: `@specify-description.md`
@@ -50,7 +50,7 @@ A learner opens their saved cards, flips through them during a review session, a
 
 **Acceptance Scenarios**:
 
-1. **Given** a user has saved cards, **When** they open review mode for all cards or a selected collection, **Then** they can move through cards one at a time in a clear front/back study view.
+1. **Given** a user has saved cards, **When** they open review mode for all cards or a selected collection, **Then** they can move through cards one at a time in a clear front/back study view, with unreviewed cards presented first, then not-learned, then learned, randomized within each group.
 2. **Given** a card is being reviewed, **When** the user flips the card, **Then** the reverse side reveals the saved answer content for self-checking.
 3. **Given** a user finishes reviewing a card, **When** they mark it as learned or not learned, **Then** the app saves that status and shows it consistently in later browsing or review sessions.
 
@@ -75,12 +75,12 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 
 ### Edge Cases
 
-- What happens when a user imports a malformed, unsupported, or partially readable DSL file?
+- What happens when a user imports a malformed, unsupported, or partially readable DSL file? → The system MUST import all valid entries and report the number of skipped or failed entries with a visible warning. A fully unreadable file MUST fail with a clear error message.
 - How does the app communicate progress when a large dictionary import takes noticeable time?
 - How does the app behave when search returns no matches across any imported dictionary?
 - What happens when the user selects a source language for which no imported dictionaries exist?
 - How does card creation behave when a dictionary entry is missing optional fields such as audio, transcription, or examples?
-- What happens if a user tries to create the same card multiple times from the same entry?
+- What happens if a user tries to create the same card multiple times from the same entry? → The system MUST block creation and navigate the user to the existing card instead.
 - How does review mode behave when a chosen collection has no cards?
 
 ## Requirements *(mandatory)*
@@ -91,25 +91,25 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 - **FR-001a**: The system MUST store `from` and `to` language metadata for each imported dictionary.
 - **FR-001b**: The system MUST show a visible upload or import progress indicator when a dictionary import takes noticeable time, especially for large files.
 - **FR-002**: The system MUST parse imported DSL dictionaries and make their entries searchable from local storage.
-- **FR-003**: The system MUST support dictionary sizes large enough for real-world reference use without requiring the user to split files manually.
+- **FR-003**: The system MUST support dictionary sizes up to 200,000 entries per dictionary without requiring the user to split files manually.
 - **FR-004**: The system MUST let users search from a single search experience while filtering searchable entries so that only words whose parent dictionary `language_from` equals the selected user language can be selected or opened.
-- **FR-005**: The system MUST support exact, partial, and fuzzy search behavior so users can find likely matches even when spelling is incomplete or slightly inaccurate.
+- **FR-005**: The system MUST support exact, prefix, and partial (substring) match behavior against headwords only so users can find likely matches even when a query is incomplete. Fuzzy/approximate matching (edit-distance-based) is deferred post-MVP. Searching inside definition or translation text is out of scope for the MVP.
 - **FR-006**: The system MUST update search results as the user types.
 - **FR-007**: The system MUST open a dedicated dictionary entry page when a user selects a word from search results.
 - **FR-007a**: The system MUST display all available translations and other available dictionary entry details for the selected word in a structured format, combining uploaded dictionaries whose `language_from` matches the selected user language and including different translations contributed by different dictionaries together with the word itself plus any available transcription, meanings, examples, or pronunciation information.
-- **FR-008**: Users MUST be able to create a card from a dictionary entry.
+- **FR-008**: Users MUST be able to create a card from a dictionary entry. If a card already exists for that entry, the system MUST block creation and navigate to the existing card instead.
 - **FR-009**: The system MUST prefill a new card with the available word information from the selected dictionary entry.
 - **FR-010**: Users MUST be able to edit a card's saved translation or definition, example text, notes, and pronunciation field before or after saving.
 - **FR-011**: The system MUST allow users to organize cards into collections.
 - **FR-012**: The system MUST allow a single card to belong to one or more collections at the same time.
 - **FR-013**: Users MUST be able to browse saved cards outside of review mode.
-- **FR-014**: The system MUST provide a basic review mode where users can view a card front, flip to the back, and move to the next card.
+- **FR-014**: The system MUST provide a basic review mode where users can view a card front, flip to the back, and move to the next card. Cards MUST be ordered with `unreviewed` cards first, then `not_learned`, then `learned`, randomized within each group.
 - **FR-015**: The system MUST allow users to mark each reviewed card as learned or not learned.
 - **FR-016**: The system MUST store imported dictionaries, saved cards, collections, and review status locally on the device.
 - **FR-017**: The system MUST remain usable for all MVP flows without continuous network access.
 - **FR-017a**: The system MUST NOT require a remote backend service or web API for dictionary import, search, card creation, collection management, or review in the MVP.
 - **FR-018**: The system MUST preserve user data across application restarts unless the user explicitly deletes or replaces that data.
-- **FR-019**: The system MUST provide clear feedback when an import fails, a search returns no results, or a save action cannot be completed.
+- **FR-019**: The system MUST provide clear feedback when an import fails, a search returns no results, or a save action cannot be completed. For partially readable DSL files, the system MUST import valid entries and display a warning showing the count of skipped entries; a fully unreadable file MUST produce a clear failure message.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -127,11 +127,21 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 - Audio support is optional at the card level and may be absent for many entries without blocking card creation or review.
 - Advanced spaced repetition, tagging, and complex filtering are future enhancements rather than MVP requirements.
 
+## Clarifications
+
+### Session 2026-03-24
+
+- Q: What happens if a user tries to create the same card multiple times from the same entry? → A: Block creation and navigate to the existing card instead.
+- Q: What is the maximum dictionary size the app must handle without performance degradation? → A: Up to 200,000 entries per dictionary.
+- Q: In what order should cards be presented during a review session? → A: Unreviewed first, then not_learned, then learned — randomized within each group.
+- Q: Does search match headwords only or also definition/translation text? → A: Headwords only; searching inside definitions is out of scope for the MVP.
+- Q: What should happen when a DSL file is malformed or only partially readable? → A: Import valid entries and report the count of skipped/failed entries with a warning; fully unreadable files fail with a clear error.
+
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 95% of dictionary searches return visible results or an explicit no-results state within 1 second after the user finishes typing a query on a typical local dataset.
+- **SC-001**: 95% of dictionary searches return visible results or an explicit no-results state within 1 second after the user finishes typing a query against a dictionary of up to 200,000 entries on a typical consumer desktop.
 - **SC-002**: Users can import a valid DSL dictionary and complete their first successful word lookup in under 5 minutes without external instructions.
 - **SC-003**: 90% of attempted card saves from valid dictionary entries complete successfully on the first try during acceptance testing.
 - **SC-004**: Users can complete a basic review session of 20 saved cards, including flipping and learned/not learned marking, without loss of progress after restarting the app.

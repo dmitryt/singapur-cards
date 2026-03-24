@@ -39,6 +39,17 @@ type CommandFailure = {
 }
 ```
 
+For `CONFLICT` failures from `create_card_from_entry`, a structured variant is returned:
+
+```ts
+type ConflictFailure = {
+  ok: false
+  code: "CONFLICT"
+  message: string
+  existingCardId: string  // ID of the card that already exists for this entry
+}
+```
+
 ## Dictionary Commands
 
 ### `import_dictionary`
@@ -54,6 +65,18 @@ type ImportDictionaryInput = {
 }
 ```
 
+**Progress events** (via `Channel<ImportProgressEvent>` parameter):
+
+```ts
+type ImportProgressEvent = {
+  processedEntries: number
+  totalEstimate?: number  // may be absent during initial file scan
+  phase: "scanning" | "indexing" | "finalizing"
+}
+```
+
+The command accepts an `on_progress` channel parameter. The frontend creates the channel before invoking, receives incremental progress events via `onmessage`, and lets the channel drop after the command resolves.
+
 **Success data**:
 
 ```ts
@@ -64,14 +87,18 @@ type ImportDictionaryOutput = {
   languageTo: string
   importStatus: "queued" | "importing" | "ready" | "failed"
   entryCount: number
+  skippedEntryCount: number   // count of unparseable entries; 0 if fully clean
+  warnings?: string           // human-readable summary when skippedEntryCount > 0
 }
 ```
 
 **Behavior**:
 - Accepts a user-selected local DSL file
 - Accepts the dictionary source and target language metadata provided by the user
-- Starts parsing and indexing in the backend
-- Returns the resulting dictionary record
+- Streams progress events via the `on_progress` channel during parsing and indexing
+- On partially readable files: imports all valid entries, sets `skippedEntryCount`, and includes a `warnings` summary
+- On fully unreadable files: returns a `PARSE_FAILED` failure with a clear error message
+- Returns the resulting dictionary record on success
 
 ### `list_dictionaries`
 
@@ -198,6 +225,9 @@ type CreateCardFromEntryOutput = {
 }
 ```
 
+**Behavior**:
+- If a card already exists for `entryId`, returns a `ConflictFailure` with `existingCardId` set to the existing card's ID. The frontend MUST navigate to that card rather than showing a generic error.
+
 ### `update_card`
 
 **Input**:
@@ -222,6 +252,54 @@ type UpdateCardOutput = {
   updatedAt: string
 }
 ```
+
+### `get_card`
+
+**Input**:
+
+```ts
+type GetCardInput = {
+  cardId: string
+}
+```
+
+**Success data**:
+
+```ts
+type GetCardOutput = {
+  id: string
+  headword: string
+  answerText: string
+  exampleText?: string
+  notes?: string
+  audioReference?: string
+  learningStatus: "unreviewed" | "learned" | "not_learned"
+  collectionIds: string[]
+  createdAt: string
+  updatedAt: string
+}
+```
+
+### `delete_card`
+
+**Input**:
+
+```ts
+type DeleteCardInput = {
+  cardId: string
+}
+```
+
+**Success data**:
+
+```ts
+type DeleteCardOutput = {
+  deletedCardId: string
+}
+```
+
+**Behavior**:
+- The UI MUST request explicit user confirmation before invoking this command
 
 ### `list_cards`
 
@@ -287,6 +365,50 @@ type ListCollectionsOutput = Array<{
 }>
 ```
 
+### `rename_collection`
+
+**Input**:
+
+```ts
+type RenameCollectionInput = {
+  collectionId: string
+  newName: string
+}
+```
+
+**Success data**:
+
+```ts
+type RenameCollectionOutput = {
+  collectionId: string
+  name: string
+  updatedAt: string
+}
+```
+
+### `delete_collection`
+
+**Input**:
+
+```ts
+type DeleteCollectionInput = {
+  collectionId: string
+}
+```
+
+**Success data**:
+
+```ts
+type DeleteCollectionOutput = {
+  deletedCollectionId: string
+}
+```
+
+**Behavior**:
+- Deletes the collection record and all `CollectionMembership` rows for it
+- Member cards are NOT deleted; they remain in the general card library
+- The UI MUST request explicit user confirmation before invoking this command
+
 ## Review Commands
 
 ### `start_review_session`
@@ -307,6 +429,10 @@ type StartReviewSessionOutput = {
   totalCards: number
 }
 ```
+
+**Behavior**:
+- Cards in `sessionCardIds` are ordered server-side: `unreviewed` first, then `not_learned`, then `learned`. Within each group the order is randomized.
+- Clients MUST NOT re-sort the returned slice.
 
 ### `record_review_result`
 
