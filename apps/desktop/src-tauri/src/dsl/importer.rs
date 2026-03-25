@@ -1,0 +1,68 @@
+use std::fs;
+use tauri::ipc::Channel;
+use crate::models::ImportProgressEvent;
+use super::parser::{parse_dsl, ParsedEntry};
+
+pub struct ImportResult {
+    pub entries: Vec<ParsedEntry>,
+    pub entry_count: u64,
+    pub skipped_entry_count: u64,
+    pub warnings: Option<String>,
+}
+
+pub fn import_dsl_file(
+    file_path: &str,
+    on_progress: &Channel<ImportProgressEvent>,
+) -> Result<ImportResult, String> {
+    // Emit scanning phase
+    let _ = on_progress.send(ImportProgressEvent {
+        processed_entries: 0,
+        total_estimate: None,
+        phase: "scanning".to_string(),
+    });
+
+    let content = fs::read_to_string(file_path)
+        .map_err(|e| format!("Failed to read file: {e}"))?;
+
+    // Emit indexing phase
+    let _ = on_progress.send(ImportProgressEvent {
+        processed_entries: 0,
+        total_estimate: None,
+        phase: "indexing".to_string(),
+    });
+
+    let (entries, skipped) = parse_dsl(&content);
+    let total = entries.len() as u64;
+
+    // Emit progress during parse (batch updates every 500)
+    let mut processed: u64 = 0;
+    for chunk_start in (0..total).step_by(500) {
+        let chunk_end = (chunk_start + 500).min(total);
+        processed = chunk_end;
+        let _ = on_progress.send(ImportProgressEvent {
+            processed_entries: processed,
+            total_estimate: Some(total),
+            phase: "indexing".to_string(),
+        });
+    }
+
+    // Finalizing phase
+    let _ = on_progress.send(ImportProgressEvent {
+        processed_entries: total,
+        total_estimate: Some(total),
+        phase: "finalizing".to_string(),
+    });
+
+    let warnings = if skipped > 0 {
+        Some(format!("{skipped} entries were skipped due to missing or malformed content."))
+    } else {
+        None
+    };
+
+    Ok(ImportResult {
+        entries,
+        entry_count: total,
+        skipped_entry_count: skipped,
+        warnings,
+    })
+}
