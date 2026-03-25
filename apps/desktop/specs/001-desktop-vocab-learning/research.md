@@ -20,17 +20,18 @@
 - JSON or file-based storage only: rejected because search, filtering, and data integrity become harder as dictionaries and cards grow.
 - A client/server database: rejected because it violates the MVP's offline-first simplicity.
 
-## Decision 3: Use SQLite full-text search plus normalized lookup fields for dictionary search
+## Decision 3: Use SQLite full-text search plus normalized lookup fields for exact and prefix dictionary search
 
-**Decision**: Build the search experience on top of normalized headword fields and a SQLite full-text search index, with lightweight ranking logic for exact, partial, and fuzzy-friendly results, while filtering eligible entries by the selected dictionary source language.
+**Decision**: Build the search experience on top of normalized headword fields and a SQLite full-text search index, with lightweight ranking logic for exact and prefix results only in the MVP, while filtering eligible entries by the selected dictionary source language.
 
-**Rationale**: The product must stay responsive with large dictionaries. SQLite indexing keeps search local and fast, while normalized fields support prefix and partial lookup. This is the simplest design that still scales beyond small hobby datasets.
+**Rationale**: The product must stay responsive with large dictionaries. SQLite indexing keeps search local and fast, while normalized fields support exact and prefix lookup without introducing slower substring or fuzzy-search fallback paths in the MVP. This is the simplest design that still scales beyond small hobby datasets.
 
-**Scope note**: The FTS index covers `normalized_headword` only. `definition_text` and `example_text` are stored in SQLite but are NOT included in the FTS index. Searching inside definition or translation text is out of scope for the MVP, as per spec clarification (FR-005).
+**Scope note**: The FTS index covers `normalized_headword` only. `definition_text` and `example_text` are stored in SQLite but are NOT included in the FTS index. Searching inside definition or translation text is out of scope for the MVP, as per spec clarification (FR-005). Substring and fuzzy matching are also deferred post-MVP.
 
 **Alternatives considered**:
 - In-memory search only: rejected because large dictionaries would increase startup cost and memory use.
 - A dedicated search engine: rejected because it introduces unnecessary operational complexity for a local desktop MVP.
+- Substring or fuzzy fallback in MVP: rejected because it adds query complexity and performance risk before the core exact/prefix lookup flow is validated at the 200,000-entry target.
 - Full-text indexing across all entry fields: rejected because it multiplies the FTS index size, slows writes, and produces noisier results for a headword-lookup tool.
 
 ## Decision 4: Keep Zustand limited to UI and session state, not canonical content

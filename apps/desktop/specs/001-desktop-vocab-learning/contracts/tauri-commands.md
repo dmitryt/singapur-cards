@@ -39,14 +39,14 @@ type CommandFailure = {
 }
 ```
 
-For `CONFLICT` failures from `create_card_from_entry`, a structured variant is returned:
+For `CONFLICT` failures from `create_card_from_headword_detail`, a structured variant is returned:
 
 ```ts
 type ConflictFailure = {
   ok: false
   code: "CONFLICT"
   message: string
-  existingCardId: string  // ID of the card that already exists for this entry
+  existingCardId: string  // ID of the card that already exists for this `headword + language`
 }
 ```
 
@@ -95,6 +95,7 @@ type ImportDictionaryOutput = {
 **Behavior**:
 - Accepts a user-selected local DSL file
 - Accepts the dictionary source and target language metadata provided by the user
+- Reads the selected file for import and persists normalized dictionary content plus source metadata in SQLite; the MVP does not retain or copy the original DSL file after a successful import
 - Streams progress events via the `on_progress` channel during parsing and indexing
 - On partially readable files: imports all valid entries, sets `skippedEntryCount`, and includes a `warnings` summary
 - On fully unreadable files: returns a `PARSE_FAILED` failure with a clear error message
@@ -144,12 +145,12 @@ type RemoveDictionaryOutput = {
 
 ## Search Commands
 
-### `search_entries`
+### `search_headwords`
 
 **Input**:
 
 ```ts
-type SearchEntriesInput = {
+type SearchHeadwordsInput = {
   query: string
   searchLanguage?: string
   dictionaryIds?: string[]
@@ -160,55 +161,68 @@ type SearchEntriesInput = {
 **Success data**:
 
 ```ts
-type SearchEntriesOutput = Array<{
-  entryId: string
-  dictionaryId: string
-  languageFrom: string
-  languageTo: string
+type SearchHeadwordsOutput = Array<{
   headword: string
-  transcription?: string
+  language: string
+  sourceEntryIds: string[]
   previewText: string
-  matchKind: "exact" | "prefix" | "partial" | "fuzzy"
+  matchKind: "exact" | "prefix"
+  contributingDictionaryCount: number
 }>
 ```
 
 **Behavior**:
 - If `searchLanguage` is provided, only entries belonging to dictionaries whose `languageFrom` matches that value are eligible to match.
 - `dictionaryIds` can further narrow results within the selected source language when both filters are provided.
+- Results are grouped by unique `headword + language` so the UI receives one search result per grouped headword, not one result per `DictionaryEntry`.
+- The MVP returns `exact` and `prefix` matches only; substring and fuzzy matching are deferred post-MVP.
 
-### `get_entry_detail`
+### `get_headword_detail`
 
 **Input**:
 
 ```ts
-type GetEntryDetailInput = {
-  entryId: string
+type GetHeadwordDetailInput = {
+  headword: string
+  language: string
 }
 ```
 
 **Success data**:
 
 ```ts
-type GetEntryDetailOutput = {
-  entryId: string
-  dictionaryId: string
+type GetHeadwordDetailOutput = {
   headword: string
-  transcription?: string
-  definitionText: string
-  exampleText?: string
-  audioReference?: string
+  language: string
+  sourceEntryIds: string[]
+  entries: Array<{
+    entryId: string
+    dictionaryId: string
+    languageTo: string
+    dictionaryName: string
+    transcription?: string
+    definitionText: string
+    exampleText?: string
+    audioReference?: string
+  }>
 }
 ```
 
+**Behavior**:
+- Resolves the grouped `HeadwordDetail` for the selected `headword + language` pair and aggregates sibling entries that share that grouped identity.
+- Returns backend-combined detail for the dedicated headword-detail page in a single response.
+
 ## Card Commands
 
-### `create_card_from_entry`
+### `create_card_from_headword_detail`
 
 **Input**:
 
 ```ts
-type CreateCardFromEntryInput = {
-  entryId: string
+type CreateCardFromHeadwordDetailInput = {
+  headword: string
+  language: string
+  sourceEntryIds: string[]
   overrideAnswerText?: string
   overrideExampleText?: string
   notes?: string
@@ -219,14 +233,14 @@ type CreateCardFromEntryInput = {
 **Success data**:
 
 ```ts
-type CreateCardFromEntryOutput = {
+type CreateCardFromHeadwordDetailOutput = {
   cardId: string
   learningStatus: "unreviewed" | "learned" | "not_learned"
 }
 ```
 
 **Behavior**:
-- If a card already exists for `entryId`, returns a `ConflictFailure` with `existingCardId` set to the existing card's ID. The frontend MUST navigate to that card rather than showing a generic error.
+- If a card already exists for the selected `headword + language` pair, returns a `ConflictFailure` with `existingCardId` set to the existing card's ID. The frontend MUST navigate to that card rather than showing a generic error.
 
 ### `update_card`
 
@@ -235,11 +249,13 @@ type CreateCardFromEntryOutput = {
 ```ts
 type UpdateCardInput = {
   cardId: string
+  language: string
   headword: string
   answerText: string
   exampleText?: string
   notes?: string
   audioReference?: string
+  sourceEntryIds?: string[]
   collectionIds?: string[]
 }
 ```
@@ -268,11 +284,13 @@ type GetCardInput = {
 ```ts
 type GetCardOutput = {
   id: string
+  language: string
   headword: string
   answerText: string
   exampleText?: string
   notes?: string
   audioReference?: string
+  sourceEntryIds: string[]
   learningStatus: "unreviewed" | "learned" | "not_learned"
   collectionIds: string[]
   createdAt: string
@@ -317,6 +335,7 @@ type ListCardsInput = {
 ```ts
 type ListCardsOutput = Array<{
   id: string
+  language: string
   headword: string
   answerText: string
   learningStatus: "unreviewed" | "learned" | "not_learned"
@@ -458,5 +477,5 @@ type RecordReviewResultOutput = {
 ## Notes
 
 - The frontend owns optimistic UI only where the rollback path is clear.
-- Dictionary import progress can begin with request-response semantics and later evolve to event-based updates if needed.
+- Dictionary import progress uses the `on_progress` channel in the MVP; do not build a parallel request-response-only fallback path into the primary contract.
 - Any future sync, audio download, or online enrichment features should be added as separate contracts rather than extending MVP commands implicitly.

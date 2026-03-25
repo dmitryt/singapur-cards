@@ -41,8 +41,8 @@ If a separate lint or typecheck script is added, run it as part of the default l
 1. Launch the desktop app in development mode.
 2. Import a valid DSL dictionary from a local file and provide its source and target language.
 3. Confirm the dictionary appears in the managed dictionary list with the expected language pair, a ready state, and a non-zero entry count.
-4. Select the imported source language and search for an exact word, a partial match, and a misspelled variant; confirm results update quickly and the app remains responsive.
-5. Open a result and verify structured entry details render correctly.
+4. Select the imported source language and search for an exact word and a prefix match; confirm results update quickly and the app remains responsive.
+5. Open a result and verify the dedicated `HeadwordDetail` page renders structured grouped details correctly.
 6. Create a card from the entry, edit at least one field, and save it.
 7. Create a collection, assign the card to it, and verify the card appears when filtering by that collection.
 8. Start review mode, flip the card, mark it as learned or not learned, and confirm the state is reflected in card browsing.
@@ -59,5 +59,6 @@ If a separate lint or typecheck script is added, run it as part of the default l
 ## Implementation Notes
 
 - Keep the canonical data model in SQLite, not in browser persistence.
+- Read the selected DSL file only for import; do not rely on retaining or copying the original file for normal MVP behavior.
 - Use Zustand persistence only for lightweight UI preferences or in-progress session state.
 - Avoid deep styling overrides on Semantic UI React components; prefer styled wrappers and layout composition.

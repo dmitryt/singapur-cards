@@ -10,8 +10,8 @@ Build a desktop-first, offline vocabulary learning application with Tauri v2. Us
 ## Technical Context
 
 **Language/Version**: Rust stable for the Tauri backend, TypeScript 5.x for the React frontend
-**Primary Dependencies**: Tauri v2, React, Zustand, styled-components, Semantic UI React, `@tauri-apps/plugin-sql` with SQLite support
-**Storage**: SQLite for application data plus app-owned local file storage for imported DSL source files when users choose to retain originals
+**Primary Dependencies**: Tauri v2, React, Zustand, styled-components, Semantic UI React, `@tauri-apps/plugin-sql` with SQLite support; CSS provided by `fomantic-ui-css` (the actively maintained community fork of Semantic UI CSS, compatible with `semantic-ui-react`)
+**Storage**: SQLite for application data; imports read a user-selected DSL file once and persist normalized dictionary content plus source metadata locally
 **Testing**: Rust unit tests for parser, migrations, and search services; Vitest + React Testing Library for UI and store behavior; documented manual smoke checks for startup, import, offline use, and persistence
 **Target Platform**: Desktop application for macOS, Windows, and Linux
 **Project Type**: Desktop app
@@ -66,6 +66,7 @@ apps/desktop/
 │   │   └── templates/                # AppShell, PageContainer
 │   ├── pages/
 │   │   ├── SearchPage.tsx
+│   │   ├── HeadwordDetailPage.tsx       # Renders the `HeadwordDetail` read model
 │   │   ├── LibraryPage.tsx
 │   │   ├── CollectionsPage.tsx
 │   │   └── ReviewPage.tsx
@@ -98,10 +99,10 @@ apps/desktop/
 │   │   │   ├── parser.rs             # Line-by-line state machine + nom tag parser
 │   │   │   └── importer.rs           # Streaming import + progress callback
 │   │   ├── commands/
-│   │   │   ├── dictionary.rs         # import_dictionary, list_dictionaries, remove_dictionary, search_entries, get_entry_detail
-│   │   │   ├── cards.rs              # save_card, load_cards, update_card, delete_card
+│   │   │   ├── dictionary.rs         # import_dictionary, list_dictionaries, remove_dictionary, search_headwords, get_headword_detail
+│   │   │   ├── cards.rs              # create_card_from_headword_detail, list_cards, update_card, delete_card
 │   │   │   ├── collections.rs        # create/rename/delete_collection, assign/remove card
-│   │   │   └── review.rs             # start_review_session, end_review_session
+│   │   │   └── review.rs             # start_review_session, record_review_result
 │   │   ├── models.rs                 # Shared serializable structs
 │   │   ├── state.rs                  # DbPool + AppState
 │   │   └── main.rs
@@ -131,9 +132,13 @@ No constitution violations or exception justifications are required for this pla
 
 `start_review_session` orders `sessionCardIds` in Rust before returning: `unreviewed` cards first, then `not_learned`, then `learned`, randomized within each group. The frontend treats the returned slice as an immutable ordered queue and MUST NOT re-sort it. This keeps the ordering logic testable in Rust unit tests rather than buried in UI store logic.
 
-### Cards are immutable copies at creation time
+### Cards store snapshots plus headword identity
 
-Cards store a snapshot of the dictionary entry. After creation, the card is independent — no foreign key to `entries`. This satisfies II (Local Data Safety) but means cards never auto-update if a dictionary is re-imported with corrections. Acceptable for MVP per spec assumptions.
+Cards store a snapshot of the selected `HeadwordDetail` for independent editing. They persist `language`, retain `source_entry_ids` for provenance/debugging, and enforce uniqueness through the `headword + language` pair rather than through one originating entry ID. After creation, editable card fields do not auto-sync if a dictionary is re-imported with corrections. Acceptable for MVP per spec assumptions.
+
+### Dedicated headword detail uses its own route
+
+Selecting a search result navigates to a dedicated headword-detail route rather than rendering the full detail inline inside `SearchPage`. This keeps the search screen focused on lookup and list interaction while giving grouped `HeadwordDetail`, card creation, and future deep-linking a stable page-level home.
 
 ### `MemoryRouter` over `BrowserRouter`
 

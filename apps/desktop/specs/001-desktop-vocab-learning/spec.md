@@ -9,32 +9,32 @@
 
 ### User Story 1 - Import and search dictionaries (Priority: P1)
 
-A learner uses the desktop app as a local-first vocabulary tool: they import one or more DSL dictionaries from local files, assign each dictionary a source and target language, and search for words using a selected source language to quickly find definitions, translations, pronunciations, and examples. When the learner selects a word, the app opens a dictionary entry page that combines available translations for that word from uploaded dictionaries that match the selected source language.
+A learner uses the desktop app as a local-first vocabulary tool: they import one or more DSL dictionaries from local files, assign each dictionary a source and target language, and search for words using a selected source language to quickly find definitions, translations, pronunciations, and examples. When the learner selects a word, the app opens a dedicated `HeadwordDetail` page that combines available translations for that word from uploaded dictionaries that match the selected source language.
 
 **Why this priority**: Dictionary import and lookup are the foundation of the product. Without them, users cannot discover vocabulary or begin creating study material.
 
-**Independent Test**: Can be fully tested by importing a valid DSL dictionary, searching for complete and partial terms, and confirming that structured entry details appear from local data without requiring internet access.
+**Independent Test**: Can be fully tested by importing a valid DSL dictionary, searching for exact and prefix terms, and confirming that structured `HeadwordDetail` content appears on a dedicated detail page from local data without requiring internet access.
 
 **Acceptance Scenarios**:
 
 1. **Given** a user has a valid DSL dictionary file, **When** they import it into the app and provide the dictionary's source and target language, **Then** the dictionary is added to their local library with that language pair and becomes available for search.
 2. **Given** a user imports a large dictionary file, **When** the import takes noticeable time, **Then** the app shows a visible upload or import progress indicator until processing completes or fails.
-3. **Given** a user has imported dictionaries, **When** they select a source language and type a full or partial word into search, **Then** only entries whose parent dictionary `language_from` equals the selected user language are considered and matching results appear quickly as they continue typing.
-4. **Given** a matching dictionary entry exists, **When** the user opens that result, **Then** the app opens a dictionary entry page that shows the word and all available translations for it from uploaded dictionaries whose `language_from` matches the selected user language, including different translations contributed by different dictionaries, in a structured, readable format.
+3. **Given** a user has imported dictionaries, **When** they select a source language and type a full word or prefix into search, **Then** only entries whose parent dictionary `language_from` equals the selected user language are considered and matching results appear quickly as they continue typing.
+4. **Given** a matching headword exists, **When** the user opens that result, **Then** the app opens a dedicated `HeadwordDetail` page that shows the word and all available translations for it from uploaded dictionaries whose `language_from` matches the selected user language, including different translations contributed by different dictionaries, in a structured, readable format.
 
 ---
 
 ### User Story 2 - Save words as study cards (Priority: P2)
 
-A learner selects a dictionary entry and saves it as a personal card, optionally adjusting the saved translation, example text, notes, or collection membership to fit their study goals.
+A learner opens a `HeadwordDetail` and saves it as a personal card, optionally adjusting the saved translation, example text, notes, or collection membership to fit their study goals.
 
 **Why this priority**: Saving words as cards turns passive lookup into active learning value. It is the core bridge between dictionary usage and ongoing vocabulary practice.
 
-**Independent Test**: Can be fully tested by selecting a search result, creating a card from it, assigning the card to one or more collections, and confirming the saved card remains available after restarting the app.
+**Independent Test**: Can be fully tested by selecting a search result, creating a card from the resulting `HeadwordDetail`, assigning the card to one or more collections, and confirming the saved card remains available after restarting the app.
 
 **Acceptance Scenarios**:
 
-1. **Given** a user is viewing a dictionary entry, **When** they choose to add it as a card, **Then** a new card is created with the available word details prefilled for review and editing.
+1. **Given** a user is viewing a `HeadwordDetail`, **When** they choose to add it as a card, **Then** a new card is created with the available word details prefilled for review and editing, including the selected `language` and contributing `source_entry_ids`.
 2. **Given** a user is creating or editing a card, **When** they save the card, **Then** the card is stored locally with its selected fields and any assigned collections.
 3. **Given** a saved card should appear in multiple study groupings, **When** the user assigns it to more than one collection, **Then** the card appears in each selected collection without requiring duplicate card creation.
 
@@ -80,8 +80,8 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 - How does the app behave when search returns no matches across any imported dictionary?
 - What happens when the user selects a source language for which no imported dictionaries exist?
 - How does card creation behave when a dictionary entry is missing optional fields such as audio, transcription, or examples?
-- What happens if a user tries to create the same card multiple times from the same entry? → The system MUST block creation and navigate the user to the existing card instead.
-- How does review mode behave when a chosen collection has no cards?
+- What happens if a user tries to create the same card multiple times for the same `headword + language` pair? → The system MUST block creation and navigate the user to the existing card instead.
+- How does review mode behave when a chosen collection has no cards? → The system MUST display a clear empty state on the review screen with a message indicating no cards are available and a call to action (e.g., a link to the Library or Collections page to add cards).
 
 ## Requirements *(mandatory)*
 
@@ -93,12 +93,12 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 - **FR-002**: The system MUST parse imported DSL dictionaries and make their entries searchable from local storage.
 - **FR-003**: The system MUST support dictionary sizes up to 200,000 entries per dictionary without requiring the user to split files manually.
 - **FR-004**: The system MUST let users search from a single search experience while filtering searchable entries so that only words whose parent dictionary `language_from` equals the selected user language can be selected or opened.
-- **FR-005**: The system MUST support exact, prefix, and partial (substring) match behavior against headwords only so users can find likely matches even when a query is incomplete. Fuzzy/approximate matching (edit-distance-based) is deferred post-MVP. Searching inside definition or translation text is out of scope for the MVP.
-- **FR-006**: The system MUST update search results as the user types.
-- **FR-007**: The system MUST open a dedicated dictionary entry page when a user selects a word from search results.
-- **FR-007a**: The system MUST display all available translations and other available dictionary entry details for the selected word in a structured format, combining uploaded dictionaries whose `language_from` matches the selected user language and including different translations contributed by different dictionaries together with the word itself plus any available transcription, meanings, examples, or pronunciation information.
-- **FR-008**: Users MUST be able to create a card from a dictionary entry. If a card already exists for that entry, the system MUST block creation and navigate to the existing card instead.
-- **FR-009**: The system MUST prefill a new card with the available word information from the selected dictionary entry.
+- **FR-005**: The system MUST support exact and prefix match behavior against headwords only so users can find likely matches even when a query is incomplete. Partial (substring) and fuzzy/approximate matching are deferred post-MVP. Searching inside definition or translation text is out of scope for the MVP.
+- **FR-006**: The system MUST update search results as the user types, with results appearing within 300 ms of the user pausing typing (debounce threshold).
+- **FR-007**: The system MUST open a dedicated `HeadwordDetail` page when a user selects a word from search results.
+- **FR-007a**: The system MUST display all available translations and other available grouped word details for the selected headword in a structured format, combining uploaded dictionaries whose `language_from` matches the selected user language and including different translations contributed by different dictionaries together with the word itself plus any available transcription, meanings, examples, or pronunciation information.
+- **FR-008**: Users MUST be able to create a card from a `HeadwordDetail`. If a card already exists for that `headword + language` pair, the system MUST block creation and navigate to the existing card instead.
+- **FR-009**: The system MUST prefill a new card with the available word information from the selected `HeadwordDetail`, including `language` and contributing `source_entry_ids`.
 - **FR-010**: Users MUST be able to edit a card's saved translation or definition, example text, notes, and pronunciation field before or after saving.
 - **FR-011**: The system MUST allow users to organize cards into collections.
 - **FR-012**: The system MUST allow a single card to belong to one or more collections at the same time.
@@ -113,9 +113,10 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 
 ### Key Entities *(include if feature involves data)*
 
-- **Dictionary**: A user-imported reference source, including its display name, source and target language, source file reference, import status, and searchable entries.
-- **Dictionary Entry**: A lookup result for a word or phrase, including the headword and any available transcription, definitions, translations, example content, or pronunciation information. Dictionary entry pages may aggregate matching entries for the same word across uploaded dictionaries, including different translations from different dictionaries, but only when those dictionaries share the selected user language as `language_from`.
-- **Card**: A saved study item derived from a dictionary entry or edited by the user, including the word, answer content, example text, notes, optional pronunciation data, and learning status.
+- **Dictionary**: A user-imported reference source, including its display name, source and target language, source file metadata for display/troubleshooting, import status, and searchable entries persisted locally in SQLite after import.
+- **Dictionary Entry**: One imported dictionary record for a word or phrase, including the headword and any available transcription, definitions, translations, example content, or pronunciation information.
+- **Headword Detail**: A grouped read model shown when the user opens a search result. It combines all matching `Dictionary Entry` records for the selected headword within the selected user language.
+- **Card**: A saved study item derived from a `Headword Detail`, including the word, `language`, answer content, example text, notes, optional pronunciation data, learning status, and optional `source_entry_ids` provenance metadata. The MVP permits at most one card per `headword + language` pair.
 - **Collection**: A user-defined grouping of cards used for organization and review.
 - **Review Record**: The current learned or not learned state associated with a card after review interactions.
 
@@ -123,6 +124,7 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 
 - The MVP is intended for a single local user profile on one desktop device at a time, no login, account system, or user separation is required.
 - Imported dictionaries and learning data are managed locally only; no standalone backend API or cloud service is part of the MVP.
+- Imported DSL files are read at import time and persisted as normalized content in SQLite; the MVP does not retain or copy the original DSL file after a successful import.
 - Any future synchronization is outside the MVP scope and, if introduced later, is expected to focus on syncing with a mobile client rather than a general-purpose backend-dependent multi-platform service.
 - Audio support is optional at the card level and may be absent for many entries without blocking card creation or review.
 - Advanced spaced repetition, tagging, and complex filtering are future enhancements rather than MVP requirements.
@@ -131,11 +133,15 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 
 ### Session 2026-03-24
 
-- Q: What happens if a user tries to create the same card multiple times from the same entry? → A: Block creation and navigate to the existing card instead.
+- Q: What happens if a user tries to create the same card multiple times for the same `headword + language` pair? → A: Block creation and navigate to the existing card instead.
 - Q: What is the maximum dictionary size the app must handle without performance degradation? → A: Up to 200,000 entries per dictionary.
 - Q: In what order should cards be presented during a review session? → A: Unreviewed first, then not_learned, then learned — randomized within each group.
 - Q: Does search match headwords only or also definition/translation text? → A: Headwords only; searching inside definitions is out of scope for the MVP.
+- Q: What search match kinds are included in the MVP? → A: Exact and prefix only; substring and fuzzy matching are deferred post-MVP.
 - Q: What should happen when a DSL file is malformed or only partially readable? → A: Import valid entries and report the count of skipped/failed entries with a warning; fully unreadable files fail with a clear error.
+- Q: How should imported DSL files be handled after a successful import? → A: Read the selected file once, persist normalized content in SQLite, and keep only source metadata for display or troubleshooting.
+- Q: How many cards can be created from a single imported dictionary entry? → A: At most one; duplicate save attempts are blocked and redirected to the existing card.
+- Q: How should opening a search result behave in the MVP? → A: Navigate to a dedicated `HeadwordDetail` page rather than rendering the detail inline inside the search page.
 
 ## Success Criteria *(mandatory)*
 

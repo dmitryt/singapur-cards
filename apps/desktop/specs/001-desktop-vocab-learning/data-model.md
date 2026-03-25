@@ -2,7 +2,7 @@
 
 ## Overview
 
-The MVP data model centers on imported dictionaries, the entries extracted from them, and the learner-owned study objects built on top of those entries. SQLite is the canonical store for all entities below.
+The MVP data model centers on imported dictionaries, the entries extracted from them, the grouped `HeadwordDetail` read model derived from those entries, and the learner-owned study objects built on top of selected headwords. SQLite is the canonical store for persisted entities below; `HeadwordDetail` is computed in the backend/frontend from persisted dictionary entries and is not stored as its own database table.
 
 ## Entities
 
@@ -16,7 +16,7 @@ The MVP data model centers on imported dictionaries, the entries extracted from 
 - `language_from`: Language users search in for this dictionary
 - `language_to`: Language the dictionary translates or explains into
 - `source_filename`: Original file name for display and troubleshooting
-- `source_path`: App-owned persisted location or original file reference when retained
+- `source_path`: Optional original file path metadata captured for display or troubleshooting; the MVP does not retain or depend on the source file after import
 - `import_status`: `queued | importing | ready | failed`
 - `entry_count`: Count of successfully indexed entries
 - `last_error`: Most recent import failure message, if any
@@ -42,7 +42,7 @@ The MVP data model centers on imported dictionaries, the entries extracted from 
 
 ### DictionaryEntry
 
-**Purpose**: Represents a searchable dictionary record extracted from DSL content. Entry detail views can aggregate multiple `DictionaryEntry` records for the same word across uploaded dictionaries when their parent dictionaries share the selected `language_from`.
+**Purpose**: Represents one imported dictionary record extracted from DSL content. Multiple `DictionaryEntry` records can contribute to one `HeadwordDetail` when they share the selected search language and headword.
 
 **Fields**:
 - `id`: Stable internal identifier
@@ -64,7 +64,27 @@ The MVP data model centers on imported dictionaries, the entries extracted from 
 
 **Relationships**:
 - Many `DictionaryEntry` records belong to one `Dictionary`
-- One `DictionaryEntry` can seed many `Card` records
+
+### HeadwordDetail
+
+**Purpose**: Represents the grouped word-level detail shown when a user opens a search result. It aggregates all matching `DictionaryEntry` records for the selected `headword` and search `language`.
+
+**Fields**:
+- `headword`: Display word or phrase selected from search
+- `language`: Selected search language that scopes this grouped headword
+- `normalized_headword`: Normalized grouping key derived from the selected headword
+- `source_entry_ids`: Ordered IDs of contributing `DictionaryEntry` records retained for provenance and debugging
+- `entries`: Ordered display-ready collection of contributing `DictionaryEntry` details
+
+**Validation rules**:
+- `headword` is required
+- `language` is required
+- `normalized_headword` is required
+- `source_entry_ids` should contain unique `DictionaryEntry.id` values only
+
+**Relationships**:
+- One `HeadwordDetail` aggregates one or more `DictionaryEntry` records
+- One `HeadwordDetail` can seed at most one `Card` per `headword + language` pair in the MVP
 
 ### Card
 
@@ -72,7 +92,8 @@ The MVP data model centers on imported dictionaries, the entries extracted from 
 
 **Fields**:
 - `id`: Stable internal identifier
-- `source_entry_id`: Optional reference to the originating dictionary entry
+- `source_entry_ids`: Optional array of originating dictionary entry IDs retained for provenance and debugging
+- `language`: Source/search language associated with the saved headword
 - `headword`: Saved prompt text shown on the card front
 - `answer_text`: Translation and/or definition shown on the back
 - `example_text`: Optional learner-visible example content
@@ -84,13 +105,17 @@ The MVP data model centers on imported dictionaries, the entries extracted from 
 - `last_reviewed_at`: Optional timestamp of the most recent review action
 
 **Validation rules**:
+- `language` is required
 - `headword` is required
 - `answer_text` is required
+- The pair `headword + language` must be unique
+- `source_entry_ids`, when present, should contain unique `DictionaryEntry.id` values only
 - `learning_status` must be one of the allowed values
 - Empty optional fields should be stored as null or empty consistently
 
 **Relationships**:
-- Many `Card` records can originate from one `DictionaryEntry`
+- A `Card` can optionally retain provenance for one or more `DictionaryEntry` records through `source_entry_ids`
+- A `HeadwordDetail` can have at most one linked `Card` in the MVP, enforced by unique `headword + language`
 - Many `Card` records can belong to many `Collection` records through `CollectionMembership`
 - One `Card` can have many `ReviewEvent` records
 
@@ -156,13 +181,16 @@ The MVP data model centers on imported dictionaries, the entries extracted from 
 ## Relationship Summary
 
 - `Dictionary 1 -> N DictionaryEntry`
-- `DictionaryEntry 1 -> N Card`
+- `HeadwordDetail 1 -> N DictionaryEntry`
+- `HeadwordDetail 1 -> 0..1 Card`
 - `Card N -> N Collection` via `CollectionMembership`
 - `Card 1 -> N ReviewEvent`
 
 ## Persistence Notes
 
 - The database is the single source of truth for dictionaries, cards, collections, and review state.
-- Search indexes are derived from `DictionaryEntry` content and filtered by parent `Dictionary` language metadata so only entries whose dictionary `language_from` matches the selected user language are eligible in search and entry detail flows.
-- Dictionary entry detail views aggregate translations for the selected word from uploaded dictionaries that match the selected user language.
+- Imported DSL files are transient inputs only; after import, normalized dictionary content is stored in SQLite and the original file is not required for normal MVP flows.
+- Search indexes are derived from `DictionaryEntry` content and filtered by parent `Dictionary` language metadata so only entries whose dictionary `language_from` matches the selected user language are eligible in search and `HeadwordDetail` flows.
+- `HeadwordDetail` is a computed read model, not a persisted table; the backend derives it by grouping matching `DictionaryEntry` records for the selected `headword` and `language`.
+- Cards are persisted against a unique `headword + language` pair, implemented with a database unique index on `cards(headword, language)`, and can retain contributing `source_entry_ids` for provenance/debugging without making those IDs the primary deduplication key.
 - User-triggered deletion flows must remove related data predictably and only after explicit confirmation.
