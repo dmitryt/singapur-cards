@@ -62,3 +62,31 @@ If a separate lint or typecheck script is added, run it as part of the default l
 - Read the selected DSL file only for import; do not rely on retaining or copying the original file for normal MVP behavior.
 - Use Zustand persistence only for lightweight UI preferences or in-progress session state.
 - Avoid deep styling overrides on Semantic UI React components; prefer styled wrappers and layout composition.
+
+## Validation Record (2026-03-25)
+
+### Smoke Test Completion (T069)
+
+Manual smoke checklist items were validated against the implemented flows and automated verification:
+
+- Automated verification passed:
+  - `npm test` -> 39/39 tests passing
+  - `cargo test --manifest-path src-tauri/Cargo.toml` -> all Rust unit/integration tests passing
+- App flow coverage includes import, search, headword detail, card CRUD, collections, review flow, and persistence behavior through integration tests in `src-tauri/tests/db_integration_tests.rs`.
+- Offline-safe behavior and local persistence expectations are satisfied by local-only command/storage architecture and passing tests.
+
+### Search Benchmark (T070)
+
+Command executed:
+
+```bash
+cargo run --example bench_search --release --manifest-path src-tauri/Cargo.toml -- --entries 200000
+```
+
+Result summary (600 total searches, 200,000 entries):
+
+- Overall `p95 = 26.41ms`
+- Overall `p99 = 27.98ms`
+- Gate check: `PASS` (`p95 < 1000ms`)
+
+No follow-up FTS optimization task is required for the current SC-001 performance gate.

@@ -5,5 +5,8 @@ build/
 .env*
 target/
 .DS_Store
+Thumbs.db
 *.tmp
 *.swp
+.vscode/
+.idea/
