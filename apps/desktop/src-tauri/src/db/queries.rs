@@ -127,7 +127,7 @@ fn search_by_match_kind(
     conn: &Connection,
     normalized_query: &str,
     search_language: Option<&str>,
-    dictionary_ids: Option<&[String]>,
+    _dictionary_ids: Option<&[String]>,
     match_kind: &str,
     limit: usize,
 ) -> Result<Vec<SearchResult>> {

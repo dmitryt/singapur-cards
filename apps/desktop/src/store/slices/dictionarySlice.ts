@@ -60,14 +60,19 @@ export const createDictionarySlice: StateCreator<DictionarySlice> = (set, get) =
 
   importDictionary: async (input) => {
     set({ importStatus: "importing", importProgress: null, importError: null });
-    const result = await commands.importDictionary(input, (event) => {
-      set({ importProgress: event });
-    });
-    if (result.ok) {
-      set({ importStatus: "success" });
-      await get().loadDictionaries();
-    } else {
-      set({ importStatus: "error", importError: result.message });
+    try {
+      const result = await commands.importDictionary(input, (event) => {
+        set({ importProgress: event });
+      });
+      if (result.ok) {
+        set({ importStatus: "success" });
+        await get().loadDictionaries();
+      } else {
+        set({ importStatus: "error", importError: result.message });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Dictionary import failed unexpectedly.";
+      set({ importStatus: "error", importError: message });
     }
   },
 

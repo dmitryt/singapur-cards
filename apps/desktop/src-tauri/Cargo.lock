@@ -3679,6 +3679,7 @@ dependencies = [
  "env_logger",
  "fake",
  "log",
+ "once_cell",
  "rand 0.8.5",
  "regex",
  "rusqlite",

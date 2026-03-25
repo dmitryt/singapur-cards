@@ -1,3 +1,10 @@
+use once_cell::sync::Lazy;
+
+static RE_TAGS: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\[[^\]]*\]").unwrap());
+static RE_SPACES: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"  +").unwrap());
+static RE_TRN: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\[trn\](.*?)\[/trn\]").unwrap());
+static RE_EX: Lazy<regex::Regex> = Lazy::new(|| regex::Regex::new(r"\[ex\](.*?)\[/ex\]").unwrap());
+
 /// Represents one fully parsed DSL entry
 #[derive(Debug, Clone)]
 pub struct ParsedEntry {
@@ -13,23 +20,43 @@ enum ParserState {
     InEntry,
 }
 
+fn is_header_directive(line: &str) -> bool {
+    line.starts_with("#NAME")
+        || line.starts_with("#INDEX_LANGUAGE")
+        || line.starts_with("#CONTENTS_LANGUAGE")
+        || line.starts_with("#DESCRIPTION")
+        || line.starts_with("#SOURCE_URL")
+        || line.starts_with("#ICON")
+}
+
+fn is_headword_line(line: &str) -> bool {
+    if line.trim().is_empty() {
+        return false;
+    }
+    if is_header_directive(line) {
+        return false;
+    }
+    if line.starts_with(' ') || line.starts_with('\t') {
+        return false;
+    }
+    true
+}
+
 /// Strips DSL markup tags like [p], [/p], [ex], [/ex], [b], [/b], [trn], [/trn], {, }
 /// Also strips pronunciation notation like \[...\]
 pub fn strip_dsl_tags(text: &str) -> String {
     // Remove DSL tags: [tagname], [/tagname], [tagname value]
-    let re_tags = regex::Regex::new(r"\[[^\]]*\]").unwrap();
-    let stripped = re_tags.replace_all(text, "");
+    let stripped = RE_TAGS.replace_all(text, "");
     // Remove { } markers
     let stripped = stripped.replace('{', "").replace('}', "");
     // Collapse multiple spaces
-    let re_spaces = regex::Regex::new(r"  +").unwrap();
-    re_spaces.replace_all(stripped.trim(), " ").to_string()
+    RE_SPACES.replace_all(stripped.trim(), " ").to_string()
 }
 
 /// Extracts transcription from [trn]...[/trn] sections
 fn extract_transcription(line: &str) -> Option<String> {
-    let re = regex::Regex::new(r"\[trn\](.*?)\[/trn\]").unwrap();
-    re.captures(line)
+    RE_TRN
+        .captures(line)
         .and_then(|c| c.get(1))
         .map(|m| m.as_str().to_string())
         .filter(|s| !s.is_empty())
@@ -37,8 +64,7 @@ fn extract_transcription(line: &str) -> Option<String> {
 
 /// Extracts example text from [ex]...[/ex] sections or from `\[example\]` notation
 fn extract_example(line: &str) -> Option<String> {
-    let re = regex::Regex::new(r"\[ex\](.*?)\[/ex\]").unwrap();
-    if let Some(caps) = re.captures(line) {
+    if let Some(caps) = RE_EX.captures(line) {
         if let Some(m) = caps.get(1) {
             let text = strip_dsl_tags(m.as_str()).trim().to_string();
             if !text.is_empty() {
@@ -105,15 +131,13 @@ pub fn parse_dsl(content: &str) -> (Vec<ParsedEntry>, u64) {
     for raw_line in content.lines() {
         let line = raw_line.trim_end();
 
-        // Skip DSL file header lines (start with #NAME, #INDEX_LANGUAGE, etc.)
-        if line.starts_with("#NAME") || line.starts_with("#INDEX_LANGUAGE")
-            || line.starts_with("#CONTENTS_LANGUAGE") || line.starts_with("#DESCRIPTION")
-            || line.starts_with("#SOURCE_URL") || line.starts_with("#ICON") {
+        // Skip DSL header directives.
+        if is_header_directive(line) {
             continue;
         }
 
-        // Headword line: starts with # (not inside a tag context)
-        if line.starts_with('#') && !line.starts_with("#NAME") {
+        // Headword line: non-indented content line (with or without '#').
+        if is_headword_line(line) {
             // Start or continue a headword group
             if state == ParserState::InEntry && !definition_lines.is_empty() {
                 // Only flush if we already collected definition lines — this is a new entry

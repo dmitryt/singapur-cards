@@ -10,6 +10,23 @@ pub struct ImportResult {
     pub warnings: Option<String>,
 }
 
+fn decode_utf16_bytes(bytes: &[u8], little_endian: bool) -> Result<String, String> {
+    if !bytes.len().is_multiple_of(2) {
+        return Err("UTF-16 byte length is not even".to_string());
+    }
+    let units: Vec<u16> = bytes
+        .chunks_exact(2)
+        .map(|chunk| {
+            if little_endian {
+                u16::from_le_bytes([chunk[0], chunk[1]])
+            } else {
+                u16::from_be_bytes([chunk[0], chunk[1]])
+            }
+        })
+        .collect();
+    String::from_utf16(&units).map_err(|e| format!("invalid UTF-16 data: {e}"))
+}
+
 pub fn import_dsl_file(
     file_path: &str,
     on_progress: &Channel<ImportProgressEvent>,
@@ -20,9 +37,24 @@ pub fn import_dsl_file(
         total_estimate: None,
         phase: "scanning".to_string(),
     });
-
-    let content = fs::read_to_string(file_path)
-        .map_err(|e| format!("Failed to read file: {e}"))?;
+    let bytes = fs::read(file_path)
+        .map_err(|e| format!("Failed to read file bytes: {e}"))?;
+    let utf16le_bom = bytes.starts_with(&[0xFF, 0xFE]);
+    let utf16be_bom = bytes.starts_with(&[0xFE, 0xFF]);
+    let utf8_bom = bytes.starts_with(&[0xEF, 0xBB, 0xBF]);
+    let content = if utf16le_bom {
+        decode_utf16_bytes(&bytes[2..], true)
+            .map_err(|e| format!("Failed to read file: {e}"))?
+    } else if utf16be_bom {
+        decode_utf16_bytes(&bytes[2..], false)
+            .map_err(|e| format!("Failed to read file: {e}"))?
+    } else if utf8_bom {
+        String::from_utf8(bytes[3..].to_vec())
+            .map_err(|e| format!("Failed to read file: {e}"))?
+    } else {
+        String::from_utf8(bytes)
+            .map_err(|e| format!("Failed to read file: {e}"))?
+    };
 
     // Emit indexing phase
     let _ = on_progress.send(ImportProgressEvent {

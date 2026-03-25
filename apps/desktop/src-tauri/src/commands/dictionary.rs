@@ -78,15 +78,16 @@ pub async fn import_dictionary(
     let dict_id = Uuid::new_v4().to_string();
     let now = Utc::now().to_rfc3339();
 
-    // Parse the file with progress streaming
-    let import_result = import_dsl_file(&input.file_path, &on_progress)
-        .map_err(|e| {
-            serde_json::to_string(&CommandFailure::file_read_failed(e)).unwrap()
-        });
-
-    let import_result = match import_result {
-        Ok(r) => r,
-        Err(e) => return Err(e),
+    // Parse the file with progress streaming.
+    // Return a structured command failure instead of transport-level Err so the UI can
+    // reliably exit "importing" state.
+    let import_result = match import_dsl_file(&input.file_path, &on_progress) {
+        Ok(result) => result,
+        Err(error) => {
+            return Ok(
+                serde_json::to_value(CommandFailure::file_read_failed(error)).unwrap()
+            );
+        }
     };
 
     if import_result.entries.is_empty() && import_result.skipped_entry_count == 0 {
