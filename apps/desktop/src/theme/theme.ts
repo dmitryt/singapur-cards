@@ -12,6 +12,14 @@ export const theme = {
     warning: "#f2711c",
     error: "#db2828",
     info: "#2185d0",
+
+    dsl: {
+      example: "#999",
+      color: "green",
+      comment: "inherit",
+      label: "green",
+      star: "#f2711c",
+    },
   },
   spacing: {
     xs: "4px",

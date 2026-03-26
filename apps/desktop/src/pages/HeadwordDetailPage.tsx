@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { Button, Loader, Message, Divider } from "semantic-ui-react";
 import PageContainer from "../components/templates/PageContainer";
 import { useStore } from "../store";
+import { dslToHtml } from "../lib/dslToHtml";
 
 const DetailHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.md};
@@ -129,10 +130,15 @@ function HeadwordDetailPage() {
         <EntryCard key={entry.entryId}>
           <DictName>{entry.dictionaryName} → {entry.languageTo}</DictName>
           {entry.transcription && (
-            <div style={{ color: "#888", marginBottom: "4px" }}>[{entry.transcription}]</div>
+            <div
+              style={{ color: "#888", marginBottom: "4px" }}
+              dangerouslySetInnerHTML={{ __html: `[${dslToHtml(entry.transcription)}]` }}
+            />
           )}
-          <Definition>{entry.definitionText}</Definition>
-          {entry.exampleText && <Example>{entry.exampleText}</Example>}
+          <Definition dangerouslySetInnerHTML={{ __html: dslToHtml(entry.definitionText) }} />
+          {entry.exampleText && (
+            <Example dangerouslySetInnerHTML={{ __html: dslToHtml(entry.exampleText) }} />
+          )}
         </EntryCard>
       ))}
 

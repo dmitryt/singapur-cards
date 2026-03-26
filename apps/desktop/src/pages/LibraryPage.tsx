@@ -46,7 +46,7 @@ const CardPreview = styled.div`
 
 const StatusBadge = styled.span<{ status: string }>`
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 10px;
   background: ${({ status }) =>
     status === "learned" ? "#d4edda" :
@@ -56,6 +56,8 @@ const StatusBadge = styled.span<{ status: string }>`
     status === "learned" ? "#155724" :
     status === "not_learned" ? "#721c24" :
     "#383d41"};
+  display: inline-flex;
+  align-items: center;
 `;
 
 const DetailPanel = styled.div`
