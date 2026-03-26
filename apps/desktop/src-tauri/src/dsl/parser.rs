@@ -66,7 +66,7 @@ fn extract_transcription(line: &str) -> Option<String> {
 fn extract_example(line: &str) -> Option<String> {
     if let Some(caps) = RE_EX.captures(line) {
         if let Some(m) = caps.get(1) {
-            let text = strip_dsl_tags(m.as_str()).trim().to_string();
+            let text = m.as_str().trim().to_string();
             if !text.is_empty() {
                 return Some(text);
             }
@@ -184,10 +184,10 @@ pub fn parse_dsl(content: &str) -> (Vec<ParsedEntry>, u64) {
                 example_lines.push(ex);
             }
 
-            // Strip tags and add to definition
-            let stripped = strip_dsl_tags(line);
-            if !stripped.trim().is_empty() {
-                definition_lines.push(stripped);
+            // Keep raw DSL markup — tags are converted to HTML on the frontend
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                definition_lines.push(trimmed.to_string());
             }
         }
     }
@@ -236,11 +236,11 @@ mod tests {
     }
 
     #[test]
-    fn test_strips_dsl_tags() {
+    fn test_preserves_dsl_tags() {
         let content = "#test\n  [p]noun[/p] a test value [ex]example[/ex]\n\n";
         let (entries, _) = parse_dsl(content);
         assert_eq!(entries.len(), 1);
-        assert!(!entries[0].definition_text.contains("[p]"));
+        assert!(entries[0].definition_text.contains("[p]"));
     }
 
     #[test]

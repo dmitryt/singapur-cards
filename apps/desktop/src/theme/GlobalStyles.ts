@@ -24,4 +24,24 @@ export const GlobalStyles = createGlobalStyle`
     display: flex;
     flex-direction: column;
   }
+
+  .dsl-comment {
+    color: ${({ theme }) => theme.colors.dsl.comment};
+  }
+
+  .dsl-example {
+    color: ${({ theme }) => theme.colors.dsl.example};
+  }
+
+  .dsl-color {
+    color: ${({ theme }) => theme.colors.dsl.color};
+  }
+
+  .dsl-label {
+    color: ${({ theme }) => theme.colors.dsl.label};
+  }
+
+  .dsl-star {
+    color: ${({ theme }) => theme.colors.dsl.star};
+  }
 `;

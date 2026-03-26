@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { Label } from "semantic-ui-react";
 import type { SearchResult } from "../../lib/tauri/commands";
+import { dslToHtml } from "../../lib/dslToHtml";
 
 const Card = styled.div`
   padding: ${({ theme }) => theme.spacing.md};
@@ -46,7 +47,7 @@ function SearchResultCard({ result, onClick }: SearchResultCardProps) {
   return (
     <Card onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onClick()}>
       <Headword>{result.headword}</Headword>
-      <Preview>{result.previewText}</Preview>
+      <Preview dangerouslySetInnerHTML={{ __html: `[${dslToHtml(result.previewText)}]` }} />
       <Meta>
         <Label size="tiny" color={result.matchKind === "exact" ? "blue" : "grey"}>
           {result.matchKind}
