@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Button, Input, Confirm, Message, Form } from "semantic-ui-react";
-import PageContainer from "../components/templates/PageContainer";
 import { useStore } from "../store";
 
 const CollectionRow = styled.div`
@@ -62,7 +61,7 @@ function CollectionsPage() {
   };
 
   return (
-    <PageContainer>
+    <>
       <h2 style={{ margin: "0 0 16px" }}>Collections</h2>
 
       <Form style={{ marginBottom: "24px" }}>
@@ -137,7 +136,7 @@ function CollectionsPage() {
         onCancel={() => setDeleteId(null)}
         onConfirm={handleDeleteConfirm}
       />
-    </PageContainer>
+    </>
   );
 }
 

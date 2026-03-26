@@ -8,17 +8,19 @@ import type {
   ImportDictionaryInput,
 } from "../../lib/tauri/commands";
 
+interface WithSelectedLanguage {
+  selectedLanguage: string;
+}
+
 export interface DictionaryState {
   dictionaries: DictionaryListItem[];
   importProgress: ImportProgressEvent | null;
   importStatus: "idle" | "importing" | "success" | "error";
   importError: string | null;
   searchQuery: string;
-  searchLanguage: string;
   searchResults: SearchResult[];
   isSearching: boolean;
   selectedHeadword: string | null;
-  selectedLanguage: string | null;
   headwordDetail: HeadwordDetail | null;
   isLoadingDetail: boolean;
 }
@@ -28,26 +30,23 @@ export interface DictionaryActions {
   importDictionary: (input: ImportDictionaryInput) => Promise<void>;
   removeDictionary: (dictionaryId: string) => Promise<void>;
   setSearchQuery: (query: string) => void;
-  setSearchLanguage: (language: string) => void;
-  searchHeadwords: (query: string, language?: string) => Promise<void>;
-  selectHeadword: (headword: string, language: string) => void;
+  searchHeadwords: (query: string) => Promise<void>;
+  selectHeadword: (headword: string) => void;
   getHeadwordDetail: (headword: string, language: string) => Promise<void>;
   clearHeadwordDetail: () => void;
 }
 
 export type DictionarySlice = DictionaryState & DictionaryActions;
 
-export const createDictionarySlice: StateCreator<DictionarySlice> = (set, get) => ({
+export const createDictionarySlice: StateCreator<DictionarySlice & WithSelectedLanguage, [], [], DictionarySlice> = (set, get) => ({
   dictionaries: [],
   importProgress: null,
   importStatus: "idle",
   importError: null,
   searchQuery: "",
-  searchLanguage: "",
   searchResults: [],
   isSearching: false,
   selectedHeadword: null,
-  selectedLanguage: null,
   headwordDetail: null,
   isLoadingDetail: false,
 
@@ -83,10 +82,9 @@ export const createDictionarySlice: StateCreator<DictionarySlice> = (set, get) =
     }
   },
 
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  setSearchLanguage: (language) => set({ searchLanguage: language }),
+  setSearchQuery: (query: string) => set({ searchQuery: query }),
 
-  searchHeadwords: async (query, language) => {
+  searchHeadwords: async (query: string, language?: string) => {
     if (!query.trim()) {
       set({ searchResults: [], isSearching: false });
       return;
@@ -94,7 +92,7 @@ export const createDictionarySlice: StateCreator<DictionarySlice> = (set, get) =
     set({ isSearching: true });
     const result = await commands.searchHeadwords({
       query,
-      searchLanguage: language || get().searchLanguage || undefined,
+      searchLanguage: language || undefined,
       limit: 50,
     });
     if (result.ok) {
@@ -104,8 +102,8 @@ export const createDictionarySlice: StateCreator<DictionarySlice> = (set, get) =
     }
   },
 
-  selectHeadword: (headword, language) => {
-    set({ selectedHeadword: headword, selectedLanguage: language });
+  selectHeadword: (headword) => {
+    set({ selectedHeadword: headword });
   },
 
   getHeadwordDetail: async (headword, language) => {
@@ -119,6 +117,6 @@ export const createDictionarySlice: StateCreator<DictionarySlice> = (set, get) =
   },
 
   clearHeadwordDetail: () => {
-    set({ headwordDetail: null, selectedHeadword: null, selectedLanguage: null });
+    set({ headwordDetail: null, selectedHeadword: null });
   },
 });

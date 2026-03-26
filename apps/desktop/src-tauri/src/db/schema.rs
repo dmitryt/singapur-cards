@@ -125,5 +125,19 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
         );",
     )?;
 
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS languages (
+            code TEXT PRIMARY KEY NOT NULL
+                CHECK(LENGTH(code) = 2 AND code = LOWER(code)),
+            title TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );",
+    )?;
+
+    conn.execute_batch(
+        "INSERT OR IGNORE INTO languages (code, title, created_at)
+         VALUES ('en', 'English', datetime('now'));",
+    )?;
+
     Ok(())
 }

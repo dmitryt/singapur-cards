@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { Button, Loader, Dropdown, Confirm, Form, Input, TextArea, Message } from "semantic-ui-react";
-import PageContainer from "../components/templates/PageContainer";
 import { useStore } from "../store";
 import type { CardListItem } from "../lib/tauri/commands";
 
@@ -46,7 +45,7 @@ const CardPreview = styled.div`
 
 const StatusBadge = styled.span<{ status: string }>`
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 10px;
   background: ${({ status }) =>
     status === "learned" ? "#d4edda" :
@@ -56,6 +55,8 @@ const StatusBadge = styled.span<{ status: string }>`
     status === "learned" ? "#155724" :
     status === "not_learned" ? "#721c24" :
     "#383d41"};
+  display: inline-flex;
+  align-items: center;
 `;
 
 const DetailPanel = styled.div`
@@ -133,11 +134,11 @@ function LibraryPage() {
   };
 
   if (isLoadingCards && cards.length === 0) {
-    return <PageContainer><Loader active inline="centered" /></PageContainer>;
+    return <Loader active inline="centered" />;
   }
 
   return (
-    <PageContainer as="div" style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100% - 60px)", overflow: "hidden" }}>
       <h2 style={{ margin: "0 0 12px" }}>Library</h2>
       <FilterBar>
         <Dropdown
@@ -223,7 +224,7 @@ function LibraryPage() {
         onCancel={() => setConfirmDelete(false)}
         onConfirm={handleDelete}
       />
-    </PageContainer>
+    </div>
   );
 }
 

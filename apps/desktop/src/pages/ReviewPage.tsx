@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { Button, Progress, Message, Loader } from "semantic-ui-react";
-import PageContainer from "../components/templates/PageContainer";
 import { useStore } from "../store";
 import type { CardDetail } from "../lib/tauri/commands";
 import * as commands from "../lib/tauri/commands";
@@ -105,7 +104,7 @@ function ReviewPage() {
 
   if (sessionComplete && sessionCardIds.length > 0) {
     return (
-      <PageContainer>
+      <>
         <ReviewLayout>
           <SessionStats>
             <h2>Session Complete!</h2>
@@ -126,17 +125,17 @@ function ReviewPage() {
             <Button primary onClick={handleStart}>Review Again</Button>
           </SessionStats>
         </ReviewLayout>
-      </PageContainer>
+      </>
     );
   }
 
   if (isStarting || loadingCard) {
-    return <PageContainer><Loader active inline="centered" /></PageContainer>;
+    return <Loader active inline="centered" />;
   }
 
   if (sessionCardIds.length === 0 && !isStarting) {
     return (
-      <PageContainer>
+      <>
         <ReviewLayout>
           <h2>Review Cards</h2>
           <Message info>
@@ -145,14 +144,14 @@ function ReviewPage() {
           </Message>
           <Button primary onClick={handleStart}>Start Review</Button>
         </ReviewLayout>
-      </PageContainer>
+      </>
     );
   }
 
   if (sessionCardIds.length > 0 && currentCardData) {
     const progress = Math.round((currentIndex / sessionCardIds.length) * 100);
     return (
-      <PageContainer>
+      <>
         <ReviewLayout>
           <div style={{ width: "480px" }}>
             <Progress percent={progress} indicating size="small" />
@@ -193,20 +192,20 @@ function ReviewPage() {
             </ReviewControls>
           )}
         </ReviewLayout>
-      </PageContainer>
+      </>
     );
   }
 
   // Initial state — show start button
   return (
-    <PageContainer>
+    <>
       <ReviewLayout>
         <h2>Review Cards</h2>
         <Button primary size="large" onClick={handleStart} loading={isStarting}>
           Start Review
         </Button>
       </ReviewLayout>
-    </PageContainer>
+    </>
   );
 }
 

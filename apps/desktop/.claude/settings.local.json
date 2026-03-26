@@ -8,7 +8,20 @@
       "Read(//Users/gremlin/projects/singapur-cards/**)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks)",
       "Bash(npm install:*)",
-      "Bash(cargo check:*)"
+      "Bash(cargo check:*)",
+      "Bash(xargs ls:*)",
+      "Bash(npx vitest:*)",
+      "Bash(cargo test:*)",
+      "Bash(mv specs/003-profile-language-search specs/002-profile-language-search)",
+      "Bash(mv specs:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh --json --paths-only 2>&1)",
+      "Bash(.specify/scripts/bash/setup-plan.sh --json)",
+      "Bash(xargs cat:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh claude:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh --json)",
+      "Bash(cargo build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find /Users/gremlin/projects/singapur-cards -name spec.md -o -name *.spec.md -o -name plan.md -o -name tasks.md)"
     ]
   }
 }

@@ -183,6 +183,24 @@ export type RenameCollectionOutput = {
   updatedAt: string;
 };
 
+// ── Language types ────────────────────────────────────────────────────────────
+
+export type Language = {
+  code: string;
+  title: string;
+  createdAt: string;
+};
+
+export type CreateLanguageInput = {
+  code: string;
+  title: string;
+};
+
+export type UpdateLanguageInput = {
+  code: string;
+  title: string;
+};
+
 // ── Review types ──────────────────────────────────────────────────────────────
 
 export type StartReviewSessionOutput = {
@@ -293,5 +311,30 @@ export async function recordReviewResult(
 ): Promise<CommandResult<RecordReviewResultOutput>> {
   return invoke<CommandResult<RecordReviewResultOutput>>("record_review_result", {
     input: { cardId, result },
+  });
+}
+
+// ── Language command wrappers ──────────────────────────────────────────────────
+
+export async function listLanguages(): Promise<CommandResult<Language[]>> {
+  return invoke<CommandResult<Language[]>>("list_languages");
+}
+
+export async function createLanguage(input: CreateLanguageInput): Promise<CommandResult<Language>> {
+  return invoke<CommandResult<Language>>("create_language", { input });
+}
+
+export async function updateLanguage(input: UpdateLanguageInput): Promise<CommandResult<Language>> {
+  return invoke<CommandResult<Language>>("update_language", { input });
+}
+
+export async function deleteLanguage(code: string): Promise<CommandResult<{ deletedCode: string }>> {
+  return invoke<CommandResult<{ deletedCode: string }>>("delete_language", { code });
+}
+
+export async function listHeadwordsForLanguage(language: string, limit?: number): Promise<CommandResult<string[]>> {
+  return invoke<CommandResult<string[]>>("list_headwords_for_language", {
+    language,
+    limit: limit ?? null,
   });
 }

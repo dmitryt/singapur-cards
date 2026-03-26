@@ -39,6 +39,11 @@ pub fn run() {
             collections::delete_collection,
             review::start_review_session,
             review::record_review_result,
+            languages::list_languages,
+            languages::create_language,
+            languages::update_language,
+            languages::delete_language,
+            languages::list_headwords_for_language,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
