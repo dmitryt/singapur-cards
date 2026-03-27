@@ -5,13 +5,20 @@
       "Bash(bash .specify/scripts/bash/check-prerequisites.sh --json)",
       "Bash(bash .specify/scripts/bash/setup-plan.sh --json)",
       "Bash(bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks)",
-      "Read(//Users/gremlin/projects/singapur-cards/**)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks)",
       "Bash(npm install:*)",
       "Bash(cargo check:*)",
       "Bash(xargs ls:*)",
       "Bash(npx vitest:*)",
-      "Bash(cargo test:*)"
+      "Bash(cargo test:*)",
+      "Bash(mv specs:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh --json --paths-only 2>&1)",
+      "Bash(.specify/scripts/bash/setup-plan.sh --json)",
+      "Bash(xargs cat:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh claude:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh --json)",
+      "Bash(cargo build:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

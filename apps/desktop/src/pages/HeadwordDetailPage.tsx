@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { Button, Loader, Message, Divider } from "semantic-ui-react";
-import PageContainer from "../components/templates/PageContainer";
+import { Message } from "semantic-ui-react";
+
 import { useStore } from "../store";
 import { dslToHtml } from "../lib/dslToHtml";
+import { Divider, Button, Loader } from "../components/atoms";
 
 const DetailHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.md};
@@ -95,26 +96,26 @@ function HeadwordDetailPage() {
 
   if (isLoadingDetail) {
     return (
-      <PageContainer>
+      <>
         <Loader active inline="centered" />
-      </PageContainer>
+      </>
     );
   }
 
   if (!headwordDetail) {
     return (
-      <PageContainer>
+      <>
         <Button icon="arrow left" content="Back to search" onClick={() => navigate(-1)} />
         <Message warning>
           <Message.Header>Not found</Message.Header>
           <p>No entries found for &quot;{headword}&quot; in {language}.</p>
         </Message>
-      </PageContainer>
+      </>
     );
   }
 
   return (
-    <PageContainer>
+    <>
       <Button icon="arrow left" content="Back to search" size="small" onClick={() => navigate(-1)} />
 
       <DetailHeader style={{ marginTop: "16px" }}>
@@ -145,7 +146,7 @@ function HeadwordDetailPage() {
       <Actions>
         <Button primary icon="bookmark" content="Save as Card" onClick={handleSaveCard} />
       </Actions>
-    </PageContainer>
+    </>
   );
 }
 

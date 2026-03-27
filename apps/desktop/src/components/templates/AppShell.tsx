@@ -1,6 +1,8 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import styled from "styled-components";
+import { Icon } from "semantic-ui-react";
+import { Divider } from "../atoms";
 
 const Shell = styled.div`
   display: flex;
@@ -75,18 +77,10 @@ function AppShell({ children }: AppShellProps) {
         <NavItems>
           <NavItem>
             <NavLink
-              to="/search"
-              end={false}
-              className={({ isActive }) => isActive ? "active" : ""}
-            >
-              Search
-            </NavLink>
-          </NavItem>
-          <NavItem>
-            <NavLink
               to="/library"
               className={({ isActive }) => isActive ? "active" : ""}
             >
+              <Icon name="book" />
               Library
             </NavLink>
           </NavItem>
@@ -95,6 +89,7 @@ function AppShell({ children }: AppShellProps) {
               to="/collections"
               className={({ isActive }) => isActive ? "active" : ""}
             >
+              <Icon name="folder" />
               Collections
             </NavLink>
           </NavItem>
@@ -103,7 +98,37 @@ function AppShell({ children }: AppShellProps) {
               to="/review"
               className={({ isActive }) => isActive ? "active" : ""}
             >
+              <Icon name="redo" />
               Review
+            </NavLink>
+          </NavItem>
+          <Divider />
+          <NavItem>
+            <NavLink
+              to="/languages"
+              className={({ isActive }) => isActive ? "active" : ""}
+            >
+              <Icon name="flag" />
+              Languages
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
+              to="/dictionaries"
+              className={({ isActive }) => isActive ? "active" : ""}
+            >
+              <Icon name="list" />
+              Dictionaries
+            </NavLink>
+          </NavItem>
+          <Divider />
+          <NavItem>
+            <NavLink
+              to="/profile"
+              className={({ isActive }) => isActive ? "active" : ""}
+            >
+              <Icon name="user" />
+              Profile
             </NavLink>
           </NavItem>
         </NavItems>

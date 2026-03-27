@@ -499,6 +499,60 @@ pub fn update_card_learning_status(conn: &Connection, card_id: &str, status: &st
     Ok(())
 }
 
+// ── Language helpers ───────────────────────────────────────────────────────────
+
+pub fn insert_language(conn: &Connection, code: &str, title: &str, created_at: &str) -> Result<()> {
+    conn.execute(
+        "INSERT INTO languages (code, title, created_at) VALUES (?1, ?2, ?3)",
+        params![code, title, created_at],
+    )?;
+    Ok(())
+}
+
+pub fn fetch_all_languages(conn: &Connection) -> Result<Vec<Language>> {
+    let mut stmt = conn.prepare(
+        "SELECT code, title, created_at FROM languages ORDER BY title ASC",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(Language {
+            code: row.get(0)?,
+            title: row.get(1)?,
+            created_at: row.get(2)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn fetch_language_count(conn: &Connection) -> Result<i64> {
+    conn.query_row("SELECT COUNT(*) FROM languages", [], |row| row.get(0))
+}
+
+pub fn update_language_title(conn: &Connection, code: &str, title: &str) -> Result<usize> {
+    let n = conn.execute(
+        "UPDATE languages SET title=?1 WHERE code=?2",
+        params![title, code],
+    )?;
+    Ok(n)
+}
+
+pub fn delete_language(conn: &Connection, code: &str) -> Result<usize> {
+    let n = conn.execute("DELETE FROM languages WHERE code=?1", params![code])?;
+    Ok(n)
+}
+
+pub fn list_headwords_for_language(conn: &Connection, language: &str, limit: i64) -> Result<Vec<String>> {
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT de.headword
+         FROM dictionary_entries de
+         JOIN dictionaries d ON d.id = de.dictionary_id
+         WHERE d.language_from = ?1 AND d.import_status = 'ready'
+         ORDER BY de.headword ASC
+         LIMIT ?2",
+    )?;
+    let rows: Result<Vec<String>> = stmt.query_map(params![language, limit], |row| row.get(0))?.collect();
+    rows
+}
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 pub fn normalize_headword(headword: &str) -> String {
