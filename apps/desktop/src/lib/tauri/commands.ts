@@ -338,3 +338,82 @@ export async function listHeadwordsForLanguage(language: string, limit?: number)
     limit: limit ?? null,
   });
 }
+
+// ── Chat command wrappers ─────────────────────────────────────────────────────
+
+export type SendChatMessageInput = {
+  prompt: string;
+  model: string;
+  provider: string;
+  selectedCollectionId: string | null;
+  vocabularyContext?: string[];
+};
+
+export type TokenUsageData = {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+};
+
+export type SendChatMessageOutput = {
+  assistantMessage: string;
+  tokenUsage: TokenUsageData | null;
+};
+
+export type ChatCommandFailure = {
+  ok: false;
+  code: "INVALID_INPUT" | "NOT_FOUND" | "KEY_REQUIRED" | "UNEXPECTED_ERROR" | "SECRET_STORE_READ_FAILED";
+  message: string;
+};
+
+export type SendChatMessageResult = CommandSuccess<SendChatMessageOutput> | ChatCommandFailure;
+
+export async function sendChatMessage(
+  input: SendChatMessageInput
+): Promise<SendChatMessageResult> {
+  return invoke<SendChatMessageResult>("send_chat_message", { input });
+}
+
+// ── Credential command wrappers ───────────────────────────────────────────────
+
+export type SaveApiCredentialInput = {
+  provider: string;
+  label?: string;
+  apiKey: string;
+};
+
+export type SaveApiCredentialOutput = {
+  credentialId: string;
+  provider: string;
+  maskedKey: string;
+};
+
+export type GetApiCredentialOutput = {
+  exists: boolean;
+  maskedKey: string | null;
+  label: string | null;
+};
+
+export type ApiKeyCommandFailure = {
+  ok: false;
+  code: "INVALID_INPUT" | "SECRET_STORE_UNAVAILABLE" | "SECRET_STORE_WRITE_FAILED" | "SECRET_STORE_READ_FAILED" | "SECRET_STORE_DELETE_FAILED" | "UNEXPECTED_ERROR";
+  message: string;
+};
+
+export async function saveApiCredential(
+  input: SaveApiCredentialInput
+): Promise<CommandSuccess<SaveApiCredentialOutput> | ApiKeyCommandFailure> {
+  return invoke("save_api_credential", { input });
+}
+
+export async function getApiCredential(
+  provider: string
+): Promise<CommandSuccess<GetApiCredentialOutput> | ApiKeyCommandFailure> {
+  return invoke("get_api_credential", { input: { provider } });
+}
+
+export async function deleteApiCredential(
+  provider: string
+): Promise<CommandSuccess<{ ok: boolean }> | ApiKeyCommandFailure> {
+  return invoke("delete_api_credential", { input: { provider } });
+}

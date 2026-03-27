@@ -44,6 +44,10 @@ pub fn run() {
             languages::update_language,
             languages::delete_language,
             languages::list_headwords_for_language,
+            chat::send_chat_message,
+            api_key::save_api_credential,
+            api_key::get_api_credential,
+            api_key::delete_api_credential,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

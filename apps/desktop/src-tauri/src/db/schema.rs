@@ -139,5 +139,22 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
          VALUES ('en', 'English', datetime('now'));",
     )?;
 
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS ai_credentials (
+            id TEXT PRIMARY KEY,
+            provider TEXT NOT NULL,
+            label TEXT,
+            is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );",
+    )?;
+
+    conn.execute_batch(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_ai_credentials_provider_active
+         ON ai_credentials(provider)
+         WHERE is_active = 1;",
+    )?;
+
     Ok(())
 }

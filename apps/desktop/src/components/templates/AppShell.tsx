@@ -124,6 +124,15 @@ function AppShell({ children }: AppShellProps) {
           <Divider />
           <NavItem>
             <NavLink
+              to="/chat"
+              className={({ isActive }) => isActive ? "active" : ""}
+            >
+              <Icon name="chat" />
+              AI Chat
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
               to="/profile"
               className={({ isActive }) => isActive ? "active" : ""}
             >

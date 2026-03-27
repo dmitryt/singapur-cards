@@ -553,6 +553,51 @@ pub fn list_headwords_for_language(conn: &Connection, language: &str, limit: i64
     rows
 }
 
+// ── Chat / credential helpers ─────────────────────────────────────────────────
+
+/// Fetch headwords for all cards in the given collection (for vocabulary context injection).
+pub fn fetch_headwords_for_collection(conn: &Connection, collection_id: &str) -> Result<Vec<String>> {
+    let mut stmt = conn.prepare(
+        "SELECT c.headword
+         FROM cards c
+         JOIN collection_memberships cm ON cm.card_id = c.id
+         WHERE cm.collection_id = ?1
+         ORDER BY c.headword ASC",
+    )?;
+    let rows: Result<Vec<String>> = stmt
+        .query_map(params![collection_id], |row| row.get(0))?
+        .collect();
+    rows
+}
+
+/// Fetch the active credential metadata row for a given provider.
+/// Returns `None` if no active credential exists for that provider.
+pub fn fetch_active_credential(
+    conn: &Connection,
+    provider: &str,
+) -> Result<Option<crate::models::AiCredential>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, provider, label, is_active, created_at, updated_at
+         FROM ai_credentials
+         WHERE provider = ?1 AND is_active = 1
+         LIMIT 1",
+    )?;
+    let mut rows = stmt.query_map(params![provider], |row| {
+        Ok(crate::models::AiCredential {
+            id: row.get(0)?,
+            provider: row.get(1)?,
+            label: row.get(2)?,
+            is_active: row.get(3)?,
+            created_at: row.get(4)?,
+            updated_at: row.get(5)?,
+        })
+    })?;
+    match rows.next() {
+        Some(row) => Ok(Some(row?)),
+        None => Ok(None),
+    }
+}
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 pub fn normalize_headword(headword: &str) -> String {

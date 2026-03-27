@@ -10,7 +10,7 @@
 
 1. Start desktop app:
    - `npm run tauri dev`
-2. Navigate to chat page (once implemented).
+2. Navigate to **AI Chat** in the sidebar (route: `/chat`).
 3. Ensure model selector has at least one model option.
 4. Keep a stopwatch/timer available for manual latency checks.
 
@@ -28,7 +28,7 @@
 3. **Context mode**
    - Select a collection and send prompt; verify context mode is accepted.
    - Switch to no-collection mode and send again; verify request still succeeds.
-   - Use an empty collection or deleted/unavailable selection and verify request degrades to no-context (non-blocking).
+   - Use an empty collection or deleted/unavailable selection and verify a `NOT_FOUND` recoverable error is shown (does NOT silently fall back to no-context).
 4. **Model selection**
    - Explicitly choose a model and send a prompt.
    - Confirm request uses currently selected model.

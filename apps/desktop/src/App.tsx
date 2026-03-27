@@ -11,6 +11,7 @@ import LibraryPage from "./pages/LibraryPage";
 import CollectionsPage from "./pages/CollectionsPage";
 import ReviewPage from "./pages/ReviewPage";
 import ProfilePage from "./pages/ProfilePage";
+import ChatPage from "./pages/ChatPage";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="/languages" element={<LanguagePage />} />
             <Route path="/dictionaries" element={<DictionaryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/chat" element={<ChatPage />} />
             <Route element={<PageWithSearchBar />}>
               <Route path="/library" element={<LibraryPage />} />
               <Route path="/collections" element={<CollectionsPage />} />

@@ -83,16 +83,20 @@ const statusOptions = [
 ];
 
 function LibraryPage() {
-  const { cards, activeCard, isLoadingCards, loadCards, getCard, updateCard, deleteCard } = useStore();
+  const { cards, activeCard, isLoadingCards, loadCards, getCard, updateCard, deleteCard, collections, loadCollections } = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
-  const [editForm, setEditForm] = useState({ headword: "", answerText: "", exampleText: "", notes: "" });
+  const [editForm, setEditForm] = useState({ headword: "", answerText: "", exampleText: "", notes: "", collectionIds: [] as string[] });
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadCards(undefined, statusFilter as "unreviewed" | "learned" | "not_learned" | undefined || undefined);
   }, [loadCards, statusFilter]);
+
+  useEffect(() => {
+    if (collections.length === 0) loadCollections();
+  }, []);
 
   const handleSelect = async (card: CardListItem) => {
     setSelectedId(card.id);
@@ -106,6 +110,7 @@ function LibraryPage() {
         answerText: activeCard.answerText,
         exampleText: activeCard.exampleText ?? "",
         notes: activeCard.notes ?? "",
+        collectionIds: activeCard.collectionIds ?? [],
       });
     }
   }, [activeCard]);
@@ -120,7 +125,7 @@ function LibraryPage() {
       answerText: editForm.answerText,
       exampleText: editForm.exampleText || undefined,
       notes: editForm.notes || undefined,
-      collectionIds: activeCard.collectionIds,
+      collectionIds: editForm.collectionIds,
     });
     setSaving(false);
     await loadCards();
@@ -205,6 +210,19 @@ function LibraryPage() {
                 <Input
                   value={editForm.notes}
                   onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                />
+              </Form.Field>
+              <Form.Field>
+                <label>Collections</label>
+                <Dropdown
+                  multiple
+                  selection
+                  fluid
+                  options={collections.map(c => ({ key: c.id, value: c.id, text: c.name }))}
+                  value={editForm.collectionIds}
+                  onChange={(_, d) => setEditForm(f => ({ ...f, collectionIds: d.value as string[] }))}
+                  disabled={collections.length === 0}
+                  placeholder={collections.length === 0 ? "No collections available" : "Select collections"}
                 />
               </Form.Field>
               <div style={{ display: "flex", gap: "8px", justifyContent: "space-between" }}>

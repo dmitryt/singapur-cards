@@ -60,7 +60,6 @@ const ConfirmInline = styled.div`
 const AddForm = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing.sm};
-  align-items: flex-start;
   margin-top: ${({ theme }) => theme.spacing.md};
   flex-wrap: wrap;
 `;
