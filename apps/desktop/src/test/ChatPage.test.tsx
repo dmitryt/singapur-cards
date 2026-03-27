@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "styled-components";
 import { MemoryRouter } from "react-router-dom";
 import { theme } from "../theme/theme";
@@ -13,13 +14,17 @@ vi.mock("@tauri-apps/api/core", () => ({
 const mockClearError = vi.fn();
 let mockErrorMessage: string | null = null;
 
-vi.mock("../features/chat/useChatRuntime", () => ({
-  useChatRuntime: vi.fn(() => ({
-    runtime: { __mocked: true },
-    errorMessage: mockErrorMessage,
-    clearError: mockClearError,
-  })),
-}));
+vi.mock("../features/chat/useChatRuntime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../features/chat/useChatRuntime")>();
+  return {
+    ...actual,
+    useChatRuntime: vi.fn(() => ({
+      runtime: { __mocked: true },
+      errorMessage: mockErrorMessage,
+      clearError: mockClearError,
+    })),
+  };
+});
 
 // Mock AssistantRuntimeProvider to just render children
 vi.mock("@assistant-ui/react", () => ({
@@ -68,7 +73,31 @@ describe("ChatPage", () => {
     mockErrorMessage = null;
     mockInvoke.mockImplementation((cmd: string) => {
       if (cmd === "list_collections") return Promise.resolve({ ok: true, data: [] });
-      if (cmd === "get_api_credential") return Promise.resolve({ ok: true, data: { exists: false, maskedKey: null, label: null } });
+      if (cmd === "get_api_credential") {
+        const exists = useStore.getState().apiKeyExists;
+        return Promise.resolve({
+          ok: true,
+          data: { exists, maskedKey: exists ? "abcd••••" : null, label: null },
+        });
+      }
+      if (cmd === "list_chat_conversations") {
+        return Promise.resolve({
+          ok: true,
+          data: [
+            {
+              id: "test-conv-1",
+              title: "New chat",
+              updatedAt: new Date().toISOString(),
+              model: null,
+              collectionId: null,
+            },
+          ],
+        });
+      }
+      if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
+      if (cmd === "create_chat_conversation") {
+        return Promise.resolve({ ok: true, data: { id: "test-conv-new" } });
+      }
       return Promise.resolve({ ok: true, data: null });
     });
     useStore.setState({
@@ -78,90 +107,98 @@ describe("ChatPage", () => {
   });
 
   describe("T042 - Send gate: API key + model required", () => {
-    it("send button is disabled when no model is selected and no API key", () => {
+    it("send button is disabled when no model is selected and no API key", async () => {
       renderChatPage();
-      const sendBtn = screen.getByTestId("composer-send");
+      const sendBtn = await screen.findByTestId("composer-send");
       expect(sendBtn).toBeDisabled();
     });
 
-    it("send button is disabled when model is selected but no API key saved", () => {
+    it("send button is disabled when model is selected but no API key saved", async () => {
+      const user = userEvent.setup();
       useStore.setState({ apiKeyExists: false });
       renderChatPage();
 
-      // Select a model via the dropdown
-      fireEvent.click(screen.getByTestId("model-selector"));
-      fireEvent.click(screen.getByText("GPT-4o"));
+      await screen.findByTestId("model-selector");
+      await user.click(screen.getByTestId("model-selector"));
+      await user.click(await screen.findByText("GPT-4o"));
 
       expect(screen.getByTestId("composer-send")).toBeDisabled();
     });
 
-    it("send button is disabled when API key exists but no model selected", () => {
+    it("send button is disabled when API key exists but no model selected", async () => {
       useStore.setState({ apiKeyExists: true });
       renderChatPage();
-      expect(screen.getByTestId("composer-send")).toBeDisabled();
+      expect((await screen.findByTestId("composer-send"))).toBeDisabled();
     });
 
-    it("send button is enabled when both API key and model are selected", () => {
+    it("send button is enabled when both API key and model are selected", async () => {
+      const user = userEvent.setup();
       useStore.setState({ apiKeyExists: true });
       renderChatPage();
 
-      fireEvent.click(screen.getByTestId("model-selector"));
-      fireEvent.click(screen.getByText("GPT-4o"));
+      await screen.findByTestId("model-selector");
+      await user.click(screen.getByTestId("model-selector"));
+      await user.click(await screen.findByText("GPT-4o"));
 
       expect(screen.getByTestId("composer-send")).not.toBeDisabled();
     });
   });
 
   describe("T012 - Model selector", () => {
-    it("renders model selector with no default selection", () => {
+    it("renders model selector with no default selection", async () => {
       renderChatPage();
-      expect(screen.getByTestId("model-selector")).toBeInTheDocument();
+      expect(await screen.findByTestId("model-selector")).toBeInTheDocument();
     });
 
-    it("shows placeholder text when no model selected", () => {
+    it("shows placeholder text when no model selected", async () => {
       renderChatPage();
-      expect(screen.getByText("Select a model…")).toBeInTheDocument();
+      expect(await screen.findByText("Select a model…")).toBeInTheDocument();
     });
   });
 
   describe("T012 - Collection selector", () => {
-    it("renders collection selector with no-collection option", () => {
+    it("renders collection selector with no-collection option", async () => {
       renderChatPage();
-      expect(screen.getByTestId("collection-selector")).toBeInTheDocument();
+      expect(await screen.findByTestId("collection-selector")).toBeInTheDocument();
       expect(screen.getAllByText("No collection").length).toBeGreaterThan(0);
     });
   });
 
   describe("T013 - Error display", () => {
-    it("shows error banner when errorMessage is set", () => {
+    it("shows error banner when errorMessage is set", async () => {
       mockErrorMessage = "No API key is saved. Go to Profile to add your OpenRouter key.";
       renderChatPage();
-      expect(screen.getByTestId("error-banner")).toBeInTheDocument();
+      expect(await screen.findByTestId("error-banner")).toBeInTheDocument();
       expect(screen.getByText(/No API key/)).toBeInTheDocument();
     });
 
-    it("does not show error banner when no error", () => {
+    it("does not show error banner when no error", async () => {
       mockErrorMessage = null;
       renderChatPage();
+      await screen.findByTestId("composer-send");
       expect(screen.queryByTestId("error-banner")).not.toBeInTheDocument();
     });
   });
 
   describe("T043 - Setup guidance when not configured", () => {
-    it("shows setup guidance when neither API key nor model selected", () => {
+    it("shows setup guidance when neither API key nor model selected", async () => {
       useStore.setState({ apiKeyExists: false });
       renderChatPage();
-      expect(screen.getByTestId("setup-guidance")).toBeInTheDocument();
+      expect(await screen.findByTestId("setup-guidance")).toBeInTheDocument();
     });
 
-    it("does not show setup guidance when fully configured", () => {
+    it("does not show setup guidance when fully configured", async () => {
+      const user = userEvent.setup();
       useStore.setState({ apiKeyExists: true });
       renderChatPage();
 
-      fireEvent.click(screen.getByTestId("model-selector"));
-      fireEvent.click(screen.getByText("GPT-4o"));
+      await screen.findByTestId("model-selector");
+      await user.click(screen.getByTestId("model-selector"));
+      await user.click(await screen.findByText("GPT-4o"));
 
-      expect(screen.queryByTestId("setup-guidance")).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByTestId("setup-guidance")).not.toBeInTheDocument();
+      });
     });
   });
 });

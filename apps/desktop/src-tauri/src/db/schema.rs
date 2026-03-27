@@ -156,5 +156,32 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
          WHERE is_active = 1;",
     )?;
 
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS chat_conversations (
+            id TEXT PRIMARY KEY NOT NULL,
+            title TEXT NOT NULL,
+            model TEXT,
+            collection_id TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );",
+    )?;
+
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS chat_messages (
+            id TEXT PRIMARY KEY NOT NULL,
+            conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+            role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+            body TEXT NOT NULL,
+            metadata_json TEXT,
+            created_at TEXT NOT NULL
+        );",
+    )?;
+
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_created
+            ON chat_messages(conversation_id, created_at);",
+    )?;
+
     Ok(())
 }

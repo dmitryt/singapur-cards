@@ -11,6 +11,7 @@ pub struct SendChatMessageInput {
     pub prompt: String,
     pub model: String,
     pub provider: String,
+    pub conversation_id: String,
     pub selected_collection_id: Option<String>,
     pub vocabulary_context: Option<Vec<String>>,
 }
@@ -108,9 +109,20 @@ pub async fn send_chat_message(
         return Ok(serde_json::to_value(CommandFailure::invalid_input("model must not be empty")).unwrap());
     }
 
+    if input.conversation_id.trim().is_empty() {
+        return Ok(
+            serde_json::to_value(CommandFailure::invalid_input("conversationId must not be empty")).unwrap(),
+        );
+    }
+
     // Scope the MutexGuard so it is dropped before the async network call.
     let (api_key, full_prompt) = {
         let conn = state.db.conn.lock().map_err(|e| e.to_string())?;
+
+        let exists = queries::chat_conversation_exists(&conn, &input.conversation_id).map_err(|e| e.to_string())?;
+        if !exists {
+            return Ok(serde_json::to_value(CommandFailure::not_found("Conversation not found.")).unwrap());
+        }
 
         // Resolve API key from OS keychain via credential metadata in SQLite
         let api_key = match resolve_api_key(&conn, &input.provider) {
@@ -129,15 +141,53 @@ pub async fn send_chat_message(
         (api_key, full_prompt)
     };
 
-    // Call OpenRouter API
-    call_openrouter(&api_key, &input.model, &full_prompt).await
+    let (assistant_message, token_usage) = match call_openrouter(&api_key, &input.model, &full_prompt).await {
+        Ok(v) => v,
+        Err(err_val) => return Ok(err_val),
+    };
+
+    let assistant_metadata_json = token_usage
+        .as_ref()
+        .and_then(|v| serde_json::to_string(v).ok());
+
+    let persist_result: Result<(String, String), String> = (|| {
+        let mut conn = state.db.conn.lock().map_err(|e| e.to_string())?;
+        queries::append_chat_turn(
+            &mut *conn,
+            &input.conversation_id,
+            &input.prompt,
+            &assistant_message,
+            assistant_metadata_json.as_deref(),
+            Some(input.model.as_str()),
+            input.selected_collection_id.as_deref(),
+        )
+        .map_err(|e| e.to_string())
+    })();
+
+    let (user_message_id, assistant_message_id) = match persist_result {
+        Ok(ids) => ids,
+        Err(e) => {
+            return Ok(serde_json::to_value(CommandFailure::unexpected_error(format!(
+                "Chat response received but failed to save: {e}"
+            )))
+            .unwrap());
+        }
+    };
+
+    Ok(serde_json::to_value(CommandSuccess::new(serde_json::json!({
+        "assistantMessage": assistant_message,
+        "tokenUsage": token_usage,
+        "userMessageId": user_message_id,
+        "assistantMessageId": assistant_message_id,
+    })))
+    .unwrap())
 }
 
 async fn call_openrouter(
     api_key: &str,
     model: &str,
     prompt: &str,
-) -> Result<serde_json::Value, String> {
+) -> Result<(String, Option<serde_json::Value>), serde_json::Value> {
     let client = reqwest::Client::new();
 
     let body = serde_json::json!({
@@ -156,16 +206,17 @@ async fn call_openrouter(
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("Network error: {e}"))?;
+        .map_err(|e| {
+            serde_json::to_value(CommandFailure::unexpected_error(format!("Network error: {e}"))).unwrap()
+        })?;
 
     let status = response.status();
-    let response_body: serde_json::Value = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse response: {e}"))?;
+    let response_body: serde_json::Value = response.json().await.map_err(|e| {
+        serde_json::to_value(CommandFailure::unexpected_error(format!("Failed to parse response: {e}"))).unwrap()
+    })?;
 
     if status == 401 || status == 403 {
-        return Ok(serde_json::to_value(CommandFailure::new(
+        return Err(serde_json::to_value(CommandFailure::new(
             "KEY_REQUIRED",
             "Your API key is invalid or unauthorized. Please check it in Profile.",
         ))
@@ -178,7 +229,7 @@ async fn call_openrouter(
             .and_then(|e| e.get("message"))
             .and_then(|m| m.as_str())
             .unwrap_or("Request failed. Please try again.");
-        return Ok(serde_json::to_value(CommandFailure::unexpected_error(msg)).unwrap());
+        return Err(serde_json::to_value(CommandFailure::unexpected_error(msg)).unwrap());
     }
 
     let assistant_message = response_body
@@ -191,10 +242,10 @@ async fn call_openrouter(
         .to_string();
 
     if assistant_message.is_empty() {
-        return Ok(
-            serde_json::to_value(CommandFailure::unexpected_error("Empty response from provider."))
-                .unwrap(),
-        );
+        return Err(serde_json::to_value(CommandFailure::unexpected_error(
+            "Empty response from provider.",
+        ))
+        .unwrap());
     }
 
     let token_usage = response_body.get("usage").map(|u| {
@@ -205,11 +256,7 @@ async fn call_openrouter(
         })
     });
 
-    Ok(serde_json::to_value(CommandSuccess::new(serde_json::json!({
-        "assistantMessage": assistant_message,
-        "tokenUsage": token_usage,
-    })))
-    .unwrap())
+    Ok((assistant_message, token_usage))
 }
 
 // ── Unit tests ────────────────────────────────────────────────────────────────
@@ -224,6 +271,7 @@ mod tests {
             prompt: "  ".to_string(),
             model: "gpt-4o".to_string(),
             provider: "openrouter".to_string(),
+            conversation_id: "conv-1".to_string(),
             selected_collection_id: None,
             vocabulary_context: None,
         };
@@ -236,6 +284,7 @@ mod tests {
             prompt: "Hello".to_string(),
             model: "".to_string(),
             provider: "openrouter".to_string(),
+            conversation_id: "conv-1".to_string(),
             selected_collection_id: None,
             vocabulary_context: None,
         };

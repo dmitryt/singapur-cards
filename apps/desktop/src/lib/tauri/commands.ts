@@ -345,6 +345,7 @@ export type SendChatMessageInput = {
   prompt: string;
   model: string;
   provider: string;
+  conversationId: string;
   selectedCollectionId: string | null;
   vocabularyContext?: string[];
 };
@@ -358,6 +359,33 @@ export type TokenUsageData = {
 export type SendChatMessageOutput = {
   assistantMessage: string;
   tokenUsage: TokenUsageData | null;
+  userMessageId: string;
+  assistantMessageId: string;
+};
+
+export type CreateChatConversationInput = {
+  model?: string | null;
+  collectionId?: string | null;
+};
+
+export type CreateChatConversationOutput = {
+  id: string;
+};
+
+export type ChatConversationSummary = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  model: string | null;
+  collectionId: string | null;
+};
+
+export type ChatMessageDto = {
+  id: string;
+  role: string;
+  body: string;
+  metadataJson: string | null;
+  createdAt: string;
 };
 
 export type ChatCommandFailure = {
@@ -372,6 +400,26 @@ export async function sendChatMessage(
   input: SendChatMessageInput
 ): Promise<SendChatMessageResult> {
   return invoke<SendChatMessageResult>("send_chat_message", { input });
+}
+
+export async function createChatConversation(
+  input: CreateChatConversationInput
+): Promise<CommandResult<CreateChatConversationOutput>> {
+  return invoke<CommandResult<CreateChatConversationOutput>>("create_chat_conversation", {
+    input,
+  });
+}
+
+export async function listChatConversations(): Promise<CommandResult<ChatConversationSummary[]>> {
+  return invoke<CommandResult<ChatConversationSummary[]>>("list_chat_conversations");
+}
+
+export async function getChatMessages(
+  conversationId: string
+): Promise<CommandResult<ChatMessageDto[]>> {
+  return invoke<CommandResult<ChatMessageDto[]>>("get_chat_messages", {
+    input: { conversationId },
+  });
 }
 
 // ── Credential command wrappers ───────────────────────────────────────────────

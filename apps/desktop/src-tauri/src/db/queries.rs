@@ -1,3 +1,4 @@
+use chrono::{Duration, Utc};
 use rusqlite::{Connection, Result, params};
 use crate::models::*;
 
@@ -551,6 +552,156 @@ pub fn list_headwords_for_language(conn: &Connection, language: &str, limit: i64
     )?;
     let rows: Result<Vec<String>> = stmt.query_map(params![language, limit], |row| row.get(0))?.collect();
     rows
+}
+
+// ── Chat history ────────────────────────────────────────────────────────────
+
+const NEW_CHAT_TITLE: &str = "New chat";
+
+/// Insert a new empty conversation row.
+pub fn insert_chat_conversation(
+    conn: &Connection,
+    id: &str,
+    model: Option<&str>,
+    collection_id: Option<&str>,
+    created_at: &str,
+    updated_at: &str,
+) -> Result<()> {
+    conn.execute(
+        "INSERT INTO chat_conversations (id, title, model, collection_id, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![id, NEW_CHAT_TITLE, model, collection_id, created_at, updated_at],
+    )?;
+    Ok(())
+}
+
+pub fn chat_conversation_exists(conn: &Connection, id: &str) -> Result<bool> {
+    let n: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM chat_conversations WHERE id = ?1",
+        params![id],
+        |row| row.get(0),
+    )?;
+    Ok(n > 0)
+}
+
+#[derive(Debug)]
+pub struct ChatConversationListRow {
+    pub id: String,
+    pub title: String,
+    pub updated_at: String,
+    pub model: Option<String>,
+    pub collection_id: Option<String>,
+}
+
+pub fn list_chat_conversations(conn: &Connection) -> Result<Vec<ChatConversationListRow>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, title, updated_at, model, collection_id
+         FROM chat_conversations
+         ORDER BY updated_at DESC",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(ChatConversationListRow {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            updated_at: row.get(2)?,
+            model: row.get(3)?,
+            collection_id: row.get(4)?,
+        })
+    })?;
+    rows.collect()
+}
+
+#[derive(Debug)]
+pub struct ChatMessageRow {
+    pub id: String,
+    pub role: String,
+    pub body: String,
+    pub metadata_json: Option<String>,
+    pub created_at: String,
+}
+
+pub fn fetch_chat_messages(conn: &Connection, conversation_id: &str) -> Result<Vec<ChatMessageRow>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, role, body, metadata_json, created_at
+         FROM chat_messages
+         WHERE conversation_id = ?1
+         ORDER BY created_at ASC",
+    )?;
+    let rows = stmt.query_map(params![conversation_id], |row| {
+        Ok(ChatMessageRow {
+            id: row.get(0)?,
+            role: row.get(1)?,
+            body: row.get(2)?,
+            metadata_json: row.get(3)?,
+            created_at: row.get(4)?,
+        })
+    })?;
+    rows.collect()
+}
+
+/// Persist one user + assistant exchange. Returns `(user_message_id, assistant_message_id)`.
+pub fn append_chat_turn(
+    conn: &mut Connection,
+    conversation_id: &str,
+    user_body: &str,
+    assistant_body: &str,
+    assistant_metadata_json: Option<&str>,
+    model: Option<&str>,
+    collection_id: Option<&str>,
+) -> Result<(String, String)> {
+    let base = Utc::now();
+    let user_ts = base.to_rfc3339();
+    let assistant_ts = (base + Duration::milliseconds(1)).to_rfc3339();
+
+    let tx = conn.transaction()?;
+    let user_id = uuid::Uuid::new_v4().to_string();
+    let assistant_id = uuid::Uuid::new_v4().to_string();
+
+    tx.execute(
+        "INSERT INTO chat_messages (id, conversation_id, role, body, metadata_json, created_at)
+         VALUES (?1, ?2, 'user', ?3, NULL, ?4)",
+        params![user_id, conversation_id, user_body, user_ts],
+    )?;
+    tx.execute(
+        "INSERT INTO chat_messages (id, conversation_id, role, body, metadata_json, created_at)
+         VALUES (?1, ?2, 'assistant', ?3, ?4, ?5)",
+        params![
+            assistant_id,
+            conversation_id,
+            assistant_body,
+            assistant_metadata_json,
+            assistant_ts
+        ],
+    )?;
+
+    let trimmed = user_body.trim();
+    let char_count = trimmed.chars().count();
+    let preview: String = trimmed.chars().take(80).collect();
+    let preview = if char_count > 80 {
+        format!("{preview}…")
+    } else {
+        preview
+    };
+
+    tx.execute(
+        "UPDATE chat_conversations
+         SET updated_at = ?1,
+             model = ?2,
+             collection_id = ?3,
+             title = CASE WHEN title = ?4 AND LENGTH(?5) > 0 THEN ?5 ELSE title END
+         WHERE id = ?6",
+        params![
+            assistant_ts,
+            model,
+            collection_id,
+            NEW_CHAT_TITLE,
+            preview,
+            conversation_id
+        ],
+    )?;
+
+    tx.commit()?;
+    Ok((user_id, assistant_id))
 }
 
 // ── Chat / credential helpers ─────────────────────────────────────────────────

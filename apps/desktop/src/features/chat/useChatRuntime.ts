@@ -1,17 +1,20 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   useExternalStoreRuntime,
   type ExternalStoreAdapter,
 } from "@assistant-ui/react";
 import type { AppendMessage, ThreadMessage } from "@assistant-ui/core";
 import { sendChatMessage } from "../../lib/tauri/commands";
-import type { CollectionListItem, TokenUsageData } from "../../lib/tauri/commands";
+import type { CollectionListItem, TokenUsageData, ChatMessageDto } from "../../lib/tauri/commands";
 import { ERROR_COPY } from "./constants";
 
 export interface ChatRuntimeParams {
+  conversationId: string;
+  initialMessages: ThreadMessage[];
   selectedModel: string | null;
   chatSelectedCollectionId: string | null;
   collections: CollectionListItem[];
+  onPersistSuccess?: () => void;
 }
 
 function extractTextFromAppendMessage(message: AppendMessage): string {
@@ -19,6 +22,57 @@ function extractTextFromAppendMessage(message: AppendMessage): string {
     .filter((part) => part.type === "text")
     .map((part) => (part as { type: "text"; text: string }).text)
     .join("");
+}
+
+function parseTokenUsageFromMetadata(json: string | null): TokenUsageData | null {
+  if (!json?.trim()) return null;
+  try {
+    const o = JSON.parse(json) as Record<string, unknown>;
+    const promptTokens = o.promptTokens;
+    const completionTokens = o.completionTokens;
+    const totalTokens = o.totalTokens;
+    if (
+      typeof promptTokens === "number" &&
+      typeof completionTokens === "number" &&
+      typeof totalTokens === "number"
+    ) {
+      return { promptTokens, completionTokens, totalTokens };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export function threadMessagesFromDto(rows: ChatMessageDto[]): ThreadMessage[] {
+  return rows.map((row) => {
+    const createdAt = new Date(row.createdAt);
+    if (row.role === "user") {
+      return {
+        id: row.id,
+        role: "user",
+        createdAt,
+        content: [{ type: "text", text: row.body }],
+        attachments: [],
+        metadata: { custom: {} },
+      } as ThreadMessage;
+    }
+    const tokenUsage = parseTokenUsageFromMetadata(row.metadataJson);
+    return {
+      id: row.id,
+      role: "assistant",
+      createdAt,
+      content: [{ type: "text", text: row.body }],
+      status: { type: "complete", reason: "stop" },
+      metadata: {
+        custom: tokenUsage ? { tokenUsage } : {},
+        unstable_state: null,
+        unstable_annotations: [],
+        unstable_data: [],
+        steps: [],
+      },
+    } as ThreadMessage;
+  });
 }
 
 function makeUserMessage(id: string, text: string): ThreadMessage {
@@ -54,15 +108,30 @@ function nextId(): string {
   return `msg-${++_messageIdCounter}-${Date.now()}`;
 }
 
-export function useChatRuntime({ selectedModel, chatSelectedCollectionId, collections }: ChatRuntimeParams) {
+export function useChatRuntime({
+  conversationId,
+  initialMessages,
+  selectedModel,
+  chatSelectedCollectionId,
+  collections,
+  onPersistSuccess,
+}: ChatRuntimeParams) {
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMessages([...initialMessages]);
+  }, [conversationId, initialMessages]);
 
   const clearError = useCallback(() => setErrorMessage(null), []);
 
   const onNew = useCallback(
     async (message: AppendMessage) => {
+      if (!conversationId.trim()) {
+        return;
+      }
+
       if (!selectedModel) {
         setErrorMessage(ERROR_COPY.NO_MODEL_SELECTED);
         return;
@@ -89,6 +158,7 @@ export function useChatRuntime({ selectedModel, chatSelectedCollectionId, collec
           prompt,
           model: selectedModel,
           provider: "openrouter",
+          conversationId,
           selectedCollectionId: chatSelectedCollectionId,
         });
 
@@ -103,11 +173,19 @@ export function useChatRuntime({ selectedModel, chatSelectedCollectionId, collec
           return;
         }
 
-        const assistantMsgId = nextId();
-        setMessages((prev) => [
-          ...prev,
-          makeAssistantMessage(assistantMsgId, result.data.assistantMessage, result.data.tokenUsage),
-        ]);
+        setMessages((prev) => {
+          const withoutTemp = prev.filter((m) => m.id !== userMsgId);
+          return [
+            ...withoutTemp,
+            makeUserMessage(result.data.userMessageId, prompt),
+            makeAssistantMessage(
+              result.data.assistantMessageId,
+              result.data.assistantMessage,
+              result.data.tokenUsage
+            ),
+          ];
+        });
+        onPersistSuccess?.();
       } catch {
         setErrorMessage(ERROR_COPY.UNEXPECTED_ERROR);
         setMessages((prev) => prev.filter((m) => m.id !== userMsgId));
@@ -115,7 +193,13 @@ export function useChatRuntime({ selectedModel, chatSelectedCollectionId, collec
         setIsRunning(false);
       }
     },
-    [selectedModel, chatSelectedCollectionId, collections]
+    [
+      selectedModel,
+      chatSelectedCollectionId,
+      collections,
+      conversationId,
+      onPersistSuccess,
+    ]
   );
 
   const adapter: ExternalStoreAdapter<ThreadMessage> = {

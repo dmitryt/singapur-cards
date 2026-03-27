@@ -35,6 +35,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       prompt: "What does apple mean?",
       model: "openai/gpt-4o",
       provider: "openrouter",
+      conversationId: "conv-test",
       selectedCollectionId: "col-123",
       vocabularyContext: ["apple", "banana"],
     });
@@ -61,6 +62,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       prompt: "Hello",
       model: "openai/gpt-4o",
       provider: "openrouter",
+      conversationId: "conv-test",
       selectedCollectionId: null,
     });
 
@@ -69,6 +71,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       expect.objectContaining({
         input: expect.objectContaining({
           selectedCollectionId: null,
+          conversationId: "conv-test",
         }),
       })
     );
@@ -86,6 +89,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       prompt: "Hello",
       model: "openai/gpt-4o",
       provider: "openrouter",
+      conversationId: "conv-test",
       selectedCollectionId: null,
     });
 
@@ -107,6 +111,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       prompt: "Hello",
       model: "openai/gpt-4o",
       provider: "openrouter",
+      conversationId: "conv-test",
       selectedCollectionId: "col-missing",
     });
 
@@ -127,6 +132,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       prompt: "Test",
       model: "openai/gpt-4o",
       provider: "openrouter",
+      conversationId: "conv-test",
       selectedCollectionId: null,
     });
 

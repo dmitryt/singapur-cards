@@ -10,7 +10,7 @@ const MessageWrapper = styled.div`
 const MessageBubble = styled.div`
   background-color: ${({ theme }) => theme.colors.secondary ?? "#f0f0f0"};
   color: ${({ theme }) => theme.colors.text ?? "#333"};
-  border-radius: 12px 12px 12px 2px;
+  border-radius: 12px;
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   word-break: break-word;
   white-space: pre-wrap;
