@@ -5,6 +5,10 @@ vi.mock("@tauri-apps/api/core", () => ({
   Channel: vi.fn().mockImplementation(() => ({ onmessage: null })),
 }));
 
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn().mockResolvedValue(() => {}),
+}));
+
 // Mock @assistant-ui/react to avoid runtime initialization in unit tests
 vi.mock("@assistant-ui/react", () => ({
   useExternalStoreRuntime: vi.fn((adapter) => adapter),
@@ -14,22 +18,35 @@ import { invoke } from "@tauri-apps/api/core";
 
 const mockInvoke = vi.mocked(invoke);
 
+const TEST_STREAM_ID = "00000000-0000-4000-8000-000000000001";
+
 // Test the vocabulary context resolution logic in isolation from the adapter hook
 // (the adapter itself is a React hook and requires a component context).
-// These tests verify the logic described in T044 directly via the command wrapper.
+// These tests verify the command wrapper shape expected by the chat runtime.
 
-describe("useChatRuntime - vocabulary context logic (T044)", () => {
+describe("useChatRuntime - sendChatMessage wrapper (T044)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("includes vocabularyContext in chat request when collectionId is set", async () => {
+  it("cancelChatStream invokes cancel_chat_stream with streamId", async () => {
+    mockInvoke.mockResolvedValue(undefined);
+    const { cancelChatStream } = await import("../lib/tauri/commands");
+    await cancelChatStream("sid-1");
+    expect(mockInvoke).toHaveBeenCalledWith("cancel_chat_stream", { streamId: "sid-1" });
+  });
+
+  it("includes streamId and selectedCollectionId in chat request", async () => {
     mockInvoke.mockResolvedValue({
       ok: true,
-      data: { assistantMessage: "Hello!", tokenUsage: null },
+      data: {
+        assistantMessage: "Hello!",
+        tokenUsage: null,
+        userMessageId: "u1",
+        assistantMessageId: "a1",
+      },
     });
 
-    // Simulate the adapter calling sendChatMessage with vocabulary context
     const { sendChatMessage } = await import("../lib/tauri/commands");
     await sendChatMessage({
       prompt: "What does apple mean?",
@@ -37,7 +54,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       provider: "openrouter",
       conversationId: "conv-test",
       selectedCollectionId: "col-123",
-      vocabularyContext: ["apple", "banana"],
+      streamId: TEST_STREAM_ID,
     });
 
     expect(mockInvoke).toHaveBeenCalledWith(
@@ -45,7 +62,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       expect.objectContaining({
         input: expect.objectContaining({
           selectedCollectionId: "col-123",
-          vocabularyContext: ["apple", "banana"],
+          streamId: TEST_STREAM_ID,
         }),
       })
     );
@@ -54,7 +71,12 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
   it("sends null selectedCollectionId in no-context mode", async () => {
     mockInvoke.mockResolvedValue({
       ok: true,
-      data: { assistantMessage: "Hi!", tokenUsage: null },
+      data: {
+        assistantMessage: "Hi!",
+        tokenUsage: null,
+        userMessageId: "u1",
+        assistantMessageId: "a1",
+      },
     });
 
     const { sendChatMessage } = await import("../lib/tauri/commands");
@@ -64,6 +86,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       provider: "openrouter",
       conversationId: "conv-test",
       selectedCollectionId: null,
+      streamId: TEST_STREAM_ID,
     });
 
     expect(mockInvoke).toHaveBeenCalledWith(
@@ -72,6 +95,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
         input: expect.objectContaining({
           selectedCollectionId: null,
           conversationId: "conv-test",
+          streamId: TEST_STREAM_ID,
         }),
       })
     );
@@ -91,6 +115,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       provider: "openrouter",
       conversationId: "conv-test",
       selectedCollectionId: null,
+      streamId: TEST_STREAM_ID,
     });
 
     expect(result.ok).toBe(false);
@@ -113,6 +138,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       provider: "openrouter",
       conversationId: "conv-test",
       selectedCollectionId: "col-missing",
+      streamId: TEST_STREAM_ID,
     });
 
     expect(result.ok).toBe(false);
@@ -124,7 +150,12 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
   it("passes provider: openrouter as hardcoded constant", async () => {
     mockInvoke.mockResolvedValue({
       ok: true,
-      data: { assistantMessage: "OK", tokenUsage: null },
+      data: {
+        assistantMessage: "OK",
+        tokenUsage: null,
+        userMessageId: "u1",
+        assistantMessageId: "a1",
+      },
     });
 
     const { sendChatMessage } = await import("../lib/tauri/commands");
@@ -134,6 +165,7 @@ describe("useChatRuntime - vocabulary context logic (T044)", () => {
       provider: "openrouter",
       conversationId: "conv-test",
       selectedCollectionId: null,
+      streamId: TEST_STREAM_ID,
     });
 
     expect(mockInvoke).toHaveBeenCalledWith(

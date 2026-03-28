@@ -1,4 +1,5 @@
 mod commands;
+mod splash_screen;
 pub mod db;
 #[cfg(test)]
 pub mod dev;
@@ -23,6 +24,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            splash_screen::splash_screen_finish,
             dictionary::import_dictionary,
             dictionary::list_dictionaries,
             dictionary::remove_dictionary,
@@ -45,9 +47,11 @@ pub fn run() {
             languages::delete_language,
             languages::list_headwords_for_language,
             chat::send_chat_message,
+            chat::cancel_chat_stream,
             chat_history::create_chat_conversation,
             chat_history::list_chat_conversations,
             chat_history::get_chat_messages,
+            chat_history::delete_chat_conversation,
             api_key::save_api_credential,
             api_key::get_api_credential,
             api_key::delete_api_credential,

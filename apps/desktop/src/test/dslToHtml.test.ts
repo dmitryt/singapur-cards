@@ -31,7 +31,7 @@ describe("dslToHtml", () => {
   });
 
   it("strips [*] hidden content markers but keeps content", () => {
-    expect(dslToHtml("[*]hidden[/*]")).toBe("hidden");
+    expect(dslToHtml("[*]hidden[/*]")).toBe(`<span class="dsl-star">hidden</span>`);
   });
 
   it("converts [mN] margin", () => {

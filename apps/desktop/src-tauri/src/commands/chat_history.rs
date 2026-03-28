@@ -20,6 +20,12 @@ pub struct GetChatMessagesInput {
     pub conversation_id: String,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteChatConversationInput {
+    pub conversation_id: String,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatConversationSummary {
@@ -122,4 +128,29 @@ pub async fn get_chat_messages(
         .collect();
 
     Ok(serde_json::to_value(CommandSuccess::new(messages)).unwrap())
+}
+
+#[command]
+pub async fn delete_chat_conversation(
+    input: DeleteChatConversationInput,
+    state: tauri::State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    if input.conversation_id.trim().is_empty() {
+        return Ok(
+            serde_json::to_value(CommandFailure::invalid_input("conversationId is required")).unwrap(),
+        );
+    }
+
+    let conn = state.db.conn.lock().map_err(|e| e.to_string())?;
+    match queries::delete_chat_conversation_row(&conn, &input.conversation_id) {
+        Ok(0) => Ok(serde_json::to_value(CommandFailure::not_found(
+            "Conversation not found.",
+        ))
+        .unwrap()),
+        Ok(_) => Ok(serde_json::to_value(CommandSuccess::new(serde_json::json!({
+            "deletedConversationId": input.conversation_id,
+        })))
+        .unwrap()),
+        Err(e) => Ok(serde_json::to_value(CommandFailure::persistence_failed(e.to_string())).unwrap()),
+    }
 }

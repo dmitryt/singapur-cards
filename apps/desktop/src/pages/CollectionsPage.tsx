@@ -1,38 +1,88 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import styled from "styled-components";
-import { Button, Input, Confirm, Message, Form } from "semantic-ui-react";
+import { Button, Input, Confirm, Message, Form, Accordion, Icon, Label, Loader } from "semantic-ui-react";
 import { useStore } from "../store";
-
-const CollectionRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
-  background: ${({ theme }) => theme.colors.surface};
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
-`;
+import type { CardListItem } from "../lib/tauri/commands";
+import * as commands from "../lib/tauri/commands";
 
 const CollectionInfo = styled.div`
-  .name { font-weight: 600; }
-  .count { font-size: ${({ theme }) => theme.fontSizes.sm}; color: ${({ theme }) => theme.colors.textSecondary}; }
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  flex: 1;
 `;
 
 const CollectionActions = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing.xs};
   align-items: center;
+  margin-left: ${({ theme }) => theme.spacing.sm};
+`;
+
+const StyledAccordionTitle = styled(Accordion.Title)`
+  display: flex;
+  align-items: center;
+  width: 100%;
+`;
+
+const StyledAccordionContent = styled(Accordion.Content)`
+  &&&& {
+    padding-bottom: 10px;
+    padding-top: 0;
+  }
+`;
+
+const statusBackground: Record<string, string> = {
+  learned: "#d4edda",
+  not_learned: "#f8d7da",
+  unreviewed: "#e2e3e5",
+};
+
+const CardLabelWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+
+  .detach-btn {
+    display: none;
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #666;
+    border: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    z-index: 1;
+
+    i {
+      margin: 0 !important;
+      font-size: 9px !important;
+      color: white;
+    }
+  }
+
+  &:hover .detach-btn {
+    display: flex;
+  }
 `;
 
 function CollectionsPage() {
-  const { collections, loadCollections, createCollection, renameCollection, deleteCollection } = useStore();
+  const { collections, loadCollections, createCollection, renameCollection, deleteCollection, updateCard } = useStore();
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [creating, setCreating] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
+  const [collectionCards, setCollectionCards] = useState<Record<string, CardListItem[]>>({});
+  const [loadingCollectionId, setLoadingCollectionId] = useState<string | null>(null);
+  const [detachTarget, setDetachTarget] = useState<{ card: CardListItem; collectionId: string } | null>(null);
+  const [detaching, setDetaching] = useState(false);
 
   useEffect(() => {
     loadCollections();
@@ -58,6 +108,46 @@ function CollectionsPage() {
     if (!deleteId) return;
     await deleteCollection(deleteId);
     setDeleteId(null);
+  };
+
+  const handleTitleClick = async (index: number, collectionId: string) => {
+    if (activeIndex === index) {
+      setActiveIndex(-1);
+      return;
+    }
+    setActiveIndex(index);
+    if (!collectionCards[collectionId]) {
+      setLoadingCollectionId(collectionId);
+      const result = await commands.listCards(collectionId);
+      if (result.ok) {
+        setCollectionCards(prev => ({ ...prev, [collectionId]: result.data }));
+      }
+      setLoadingCollectionId(null);
+    }
+  };
+
+  const handleDetach = async () => {
+    if (!detachTarget) return;
+    setDetaching(true);
+    const result = await commands.getCard(detachTarget.card.id);
+    if (result.ok) {
+      const card = result.data;
+      await updateCard({
+        cardId: card.id,
+        language: card.language,
+        headword: card.headword,
+        answerText: card.answerText,
+        exampleText: card.exampleText,
+        notes: card.notes,
+        collectionIds: card.collectionIds.filter(id => id !== detachTarget.collectionId),
+      });
+      setCollectionCards(prev => ({
+        ...prev,
+        [detachTarget.collectionId]: prev[detachTarget.collectionId].filter(c => c.id !== detachTarget.card.id),
+      }));
+    }
+    setDetaching(false);
+    setDetachTarget(null);
   };
 
   return (
@@ -94,39 +184,80 @@ function CollectionsPage() {
           <Message.Header>No collections yet</Message.Header>
           <p>Create a collection to organize your study cards.</p>
         </Message>
-      ) : collections.map(coll => (
-        <CollectionRow key={coll.id}>
-          {editId === coll.id ? (
-            <Input
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter") handleRenameConfirm();
-                if (e.key === "Escape") { setEditId(null); setEditName(""); }
-              }}
-              autoFocus
-            />
-          ) : (
-            <CollectionInfo>
-              <div className="name">{coll.name}</div>
-              <div className="count">{coll.cardCount} {coll.cardCount === 1 ? "card" : "cards"}</div>
-            </CollectionInfo>
-          )}
-          <CollectionActions>
-            {editId === coll.id ? (
-              <>
-                <Button size="mini" primary onClick={handleRenameConfirm}>Save</Button>
-                <Button size="mini" onClick={() => { setEditId(null); setEditName(""); }}>Cancel</Button>
-              </>
-            ) : (
-              <>
-                <Button size="mini" icon="edit" onClick={() => { setEditId(coll.id); setEditName(coll.name); }} />
-                <Button size="mini" icon="trash" color="red" basic onClick={() => setDeleteId(coll.id)} />
-              </>
-            )}
-          </CollectionActions>
-        </CollectionRow>
-      ))}
+      ) : (
+        <Accordion exclusive styled fluid>
+          {collections.map((coll, i) => (
+            <Fragment key={coll.id}>
+              <StyledAccordionTitle active={activeIndex === i} index={i} onClick={() => handleTitleClick(i, coll.id)} style={{ cursor: "pointer" }}>
+                <Icon name="dropdown" />
+                <CollectionInfo>
+                  <span style={{ fontWeight: 600 }}>{coll.name}</span>
+                  <span style={{ fontSize: "13px", color: "#666" }}>
+                    ({coll.cardCount})
+                  </span>
+                </CollectionInfo>
+                <CollectionActions>
+                  {editId === coll.id ? (
+                    <>
+                      <Input
+                        size="mini"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if (e.key === "Enter") handleRenameConfirm();
+                          if (e.key === "Escape") { setEditId(null); setEditName(""); }
+                        }}
+                        autoFocus
+                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                      />
+                      <Button size="mini" primary onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleRenameConfirm(); }}>Save</Button>
+                      <Button size="mini" onClick={(e: React.MouseEvent) => { e.stopPropagation(); setEditId(null); setEditName(""); }}>Cancel</Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="mini" icon="edit" onClick={(e: React.MouseEvent) => { e.stopPropagation(); setEditId(coll.id); setEditName(coll.name); }} />
+                      <Button size="mini" icon="trash" color="red" basic onClick={(e: React.MouseEvent) => { e.stopPropagation(); setDeleteId(coll.id); }} />
+                    </>
+                  )}
+                </CollectionActions>
+              </StyledAccordionTitle>
+              <StyledAccordionContent active={activeIndex === i}>
+                {loadingCollectionId === coll.id ? (
+                  <Loader active inline="centered" size="small" style={{ margin: "12px 0" }} />
+                ) : (collectionCards[coll.id] ?? []).length === 0 ? (
+                  <p style={{ color: "#666", fontSize: "14px", margin: "8px 0" }}>No cards in this collection.</p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", padding: "8px 0" }}>
+                    {(collectionCards[coll.id] ?? []).map(card => (
+                      <CardLabelWrapper key={card.id}>
+                        <Label style={{ background: statusBackground[card.learningStatus] ?? "#e2e3e5" }}>
+                          {card.headword}
+                        </Label>
+                        <button
+                          className="detach-btn"
+                          title="Detach from collection"
+                          onClick={() => setDetachTarget({ card, collectionId: coll.id })}
+                        >
+                          <Icon name="times" />
+                        </button>
+                      </CardLabelWrapper>
+                    ))}
+                  </div>
+                )}
+              </StyledAccordionContent>
+            </Fragment>
+          ))}
+        </Accordion>
+      )}
+
+      <Confirm
+        open={detachTarget !== null}
+        header="Detach card?"
+        content={`Remove "${detachTarget?.card.headword}" from this collection? The card will remain in your library.`}
+        confirmButton={{ content: "Detach", color: "orange", loading: detaching } as object}
+        onCancel={() => setDetachTarget(null)}
+        onConfirm={handleDetach}
+      />
 
       <Confirm
         open={deleteId !== null}

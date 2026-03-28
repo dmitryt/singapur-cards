@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "styled-components";
 import { MemoryRouter } from "react-router-dom";
@@ -30,15 +30,22 @@ vi.mock("../features/chat/useChatRuntime", async (importOriginal) => {
 vi.mock("@assistant-ui/react", () => ({
   AssistantRuntimeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   ThreadPrimitive: {
-    Root: ({ children }: { children: React.ReactNode }) => <div data-testid="thread-root">{children}</div>,
+    Root: ({
+      children,
+      ...rest
+    }: React.PropsWithChildren<React.HTMLAttributes<HTMLDivElement>>) => (
+      <div data-testid="thread-root" {...rest}>
+        {children}
+      </div>
+    ),
     Viewport: ({ children }: { children: React.ReactNode }) => <div data-testid="thread-viewport">{children}</div>,
     Messages: () => null,
     Empty: ({ children }: { children: React.ReactNode }) => <div data-testid="thread-empty">{children}</div>,
   },
   ComposerPrimitive: {
     Root: ({ children }: { children: React.ReactNode }) => <div data-testid="composer-root">{children}</div>,
-    Input: (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-      <textarea data-testid="composer-input" {...props} />
+    Input: ({ value }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
+      <textarea data-testid="composer-input" value={value} />
     ),
     Send: ({ children }: { children?: React.ReactNode }) => (
       <>{children ?? <button data-testid="composer-send">Send</button>}</>
@@ -51,11 +58,21 @@ vi.mock("@assistant-ui/react", () => ({
   useMessage: vi.fn(() => null),
 }));
 
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, type InvokeArgs } from "@tauri-apps/api/core";
 import { useStore } from "../store";
 import ChatPage from "../pages/ChatPage";
 
 const mockInvoke = vi.mocked(invoke);
+
+function conversationIdFromInvokeArgs(args: InvokeArgs | undefined): string {
+  if (!args || Array.isArray(args) || args instanceof ArrayBuffer || args instanceof Uint8Array) {
+    return "";
+  }
+  const input = (args as Record<string, unknown>).input;
+  if (!input || typeof input !== "object" || Array.isArray(input)) return "";
+  const id = (input as Record<string, unknown>).conversationId;
+  return typeof id === "string" ? id : "";
+}
 
 function renderChatPage() {
   return render(
@@ -68,10 +85,21 @@ function renderChatPage() {
 }
 
 describe("ChatPage", () => {
+  const defaultConversationRow = {
+    id: "test-conv-1",
+    title: "New chat",
+    updatedAt: new Date().toISOString(),
+    model: null as string | null,
+    collectionId: null as string | null,
+  };
+
+  let mockChatConversationRows: typeof defaultConversationRow[];
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockErrorMessage = null;
-    mockInvoke.mockImplementation((cmd: string) => {
+    mockChatConversationRows = [{ ...defaultConversationRow }];
+    mockInvoke.mockImplementation((cmd: string, args?: InvokeArgs) => {
       if (cmd === "list_collections") return Promise.resolve({ ok: true, data: [] });
       if (cmd === "get_api_credential") {
         const exists = useStore.getState().apiKeyExists;
@@ -83,18 +111,18 @@ describe("ChatPage", () => {
       if (cmd === "list_chat_conversations") {
         return Promise.resolve({
           ok: true,
-          data: [
-            {
-              id: "test-conv-1",
-              title: "New chat",
-              updatedAt: new Date().toISOString(),
-              model: null,
-              collectionId: null,
-            },
-          ],
+          data: mockChatConversationRows.map((r) => ({ ...r })),
         });
       }
       if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
+      if (cmd === "delete_chat_conversation") {
+        const id = conversationIdFromInvokeArgs(args);
+        mockChatConversationRows = mockChatConversationRows.filter((c) => c.id !== id);
+        return Promise.resolve({
+          ok: true,
+          data: { deletedConversationId: id },
+        });
+      }
       if (cmd === "create_chat_conversation") {
         return Promise.resolve({ ok: true, data: { id: "test-conv-new" } });
       }
@@ -180,14 +208,46 @@ describe("ChatPage", () => {
     });
   });
 
+  describe("Removing a conversation", () => {
+    it("calls delete_chat_conversation and refreshes list after confirm", async () => {
+      const user = userEvent.setup();
+      mockChatConversationRows.push({
+        id: "test-conv-2",
+        title: "Second chat",
+        updatedAt: new Date().toISOString(),
+        model: null,
+        collectionId: null,
+      });
+
+      renderChatPage();
+      await screen.findByTestId("conversation-row-test-conv-1");
+
+      await user.click(screen.getByTestId("conversation-remove-test-conv-1"));
+      await user.click(screen.getByRole("button", { name: /^Remove$/ }));
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith("delete_chat_conversation", {
+          input: { conversationId: "test-conv-1" },
+        });
+      });
+
+      expect(mockChatConversationRows.map((c) => c.id)).toEqual(["test-conv-2"]);
+      await waitFor(() => {
+        expect(screen.getByTestId("conversation-row-test-conv-2")).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("conversation-row-test-conv-1")).not.toBeInTheDocument();
+    });
+  });
+
   describe("T043 - Setup guidance when not configured", () => {
-    it("shows setup guidance when neither API key nor model selected", async () => {
+    it("blocks sending when neither API key nor model selected", async () => {
       useStore.setState({ apiKeyExists: false });
       renderChatPage();
-      expect(await screen.findByTestId("setup-guidance")).toBeInTheDocument();
+      expect(await screen.findByText("Select a model…")).toBeInTheDocument();
+      expect(screen.getByTestId("composer-send")).toBeDisabled();
     });
 
-    it("does not show setup guidance when fully configured", async () => {
+    it("enables send when API key and model are selected", async () => {
       const user = userEvent.setup();
       useStore.setState({ apiKeyExists: true });
       renderChatPage();
@@ -197,7 +257,7 @@ describe("ChatPage", () => {
       await user.click(await screen.findByText("GPT-4o"));
 
       await waitFor(() => {
-        expect(screen.queryByTestId("setup-guidance")).not.toBeInTheDocument();
+        expect(screen.getByTestId("composer-send")).not.toBeDisabled();
       });
     });
   });

@@ -22,5 +22,8 @@
       "Bash(npm test:*)",
       "Bash(git:*)"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "mcp-docs-server"
+  ]
 }

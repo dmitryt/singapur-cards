@@ -7,7 +7,6 @@ import type { CollectionListItem } from "../../lib/tauri/commands";
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const ComposerCard = styled.div`
-  margin: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: 16px;
   background: ${({ theme }) => theme.colors.surface};
@@ -27,6 +26,19 @@ const ComposerBottomBar = styled.div`
 
 const BottomBarSpacer = styled.div`
   flex: 1;
+`;
+
+const ComposerTextArea = styled(TextArea)`
+  font-size: 1rem;
+  resize: none;
+  min-height: 60px;
+  max-height: 160px;
+  border: none;
+  border-radius: 16px 16px 0 0;
+  padding: 12px ${({ theme }) => theme.spacing.md};
+  outline: none;
+  box-shadow: none;
+  width: 100%;
 `;
 
 const ChipDropdownWrapper = styled.div`
@@ -85,23 +97,12 @@ export function ChatComposer({
     <ComposerCard>
       <ComposerPrimitive.Root>
         <ComposerPrimitive.Input asChild>
-          <TextArea
+          <ComposerTextArea
             placeholder={
               !apiKeyExists
                 ? "Configure your API key to start chatting…"
                 : "Ask something about your vocabulary…"
             }
-            style={{
-              resize: "none",
-              minHeight: "60px",
-              maxHeight: "160px",
-              border: "none",
-              borderRadius: "16px 16px 0 0",
-              padding: "12px 16px",
-              outline: "none",
-              boxShadow: "none",
-              width: "100%",
-            }}
           />
         </ComposerPrimitive.Input>
 

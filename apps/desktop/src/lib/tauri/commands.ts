@@ -347,7 +347,8 @@ export type SendChatMessageInput = {
   provider: string;
   conversationId: string;
   selectedCollectionId: string | null;
-  vocabularyContext?: string[];
+  /** Correlates `chat_stream_*` events from the backend with this request. */
+  streamId: string;
 };
 
 export type TokenUsageData = {
@@ -372,6 +373,10 @@ export type CreateChatConversationOutput = {
   id: string;
 };
 
+export type DeleteChatConversationOutput = {
+  deletedConversationId: string;
+};
+
 export type ChatConversationSummary = {
   id: string;
   title: string;
@@ -390,7 +395,13 @@ export type ChatMessageDto = {
 
 export type ChatCommandFailure = {
   ok: false;
-  code: "INVALID_INPUT" | "NOT_FOUND" | "KEY_REQUIRED" | "UNEXPECTED_ERROR" | "SECRET_STORE_READ_FAILED";
+  code:
+    | "INVALID_INPUT"
+    | "NOT_FOUND"
+    | "KEY_REQUIRED"
+    | "UNEXPECTED_ERROR"
+    | "SECRET_STORE_READ_FAILED"
+    | "CANCELLED";
   message: string;
 };
 
@@ -400,6 +411,10 @@ export async function sendChatMessage(
   input: SendChatMessageInput
 ): Promise<SendChatMessageResult> {
   return invoke<SendChatMessageResult>("send_chat_message", { input });
+}
+
+export async function cancelChatStream(streamId: string): Promise<void> {
+  return invoke<void>("cancel_chat_stream", { streamId });
 }
 
 export async function createChatConversation(
@@ -418,6 +433,14 @@ export async function getChatMessages(
   conversationId: string
 ): Promise<CommandResult<ChatMessageDto[]>> {
   return invoke<CommandResult<ChatMessageDto[]>>("get_chat_messages", {
+    input: { conversationId },
+  });
+}
+
+export async function deleteChatConversation(
+  conversationId: string
+): Promise<CommandResult<DeleteChatConversationOutput>> {
+  return invoke<CommandResult<DeleteChatConversationOutput>>("delete_chat_conversation", {
     input: { conversationId },
   });
 }

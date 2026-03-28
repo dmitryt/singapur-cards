@@ -12,13 +12,25 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Singapur Cards",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "visible": false
+      },
+      {
+        "label": "splashscreen",
+        "title": "Singapur Cards",
+        "url": "splashscreen.html",
+        "width": 420,
+        "height": 320,
+        "resizable": false,
+        "decorations": true,
+        "center": true
       }
     ],
     "security": {

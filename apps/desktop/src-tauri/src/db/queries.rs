@@ -584,6 +584,14 @@ pub fn chat_conversation_exists(conn: &Connection, id: &str) -> Result<bool> {
     Ok(n > 0)
 }
 
+/// Deletes the conversation row; `chat_messages` rows cascade.
+pub fn delete_chat_conversation_row(conn: &Connection, id: &str) -> Result<usize> {
+    conn.execute(
+        "DELETE FROM chat_conversations WHERE id = ?1",
+        params![id],
+    )
+}
+
 #[derive(Debug)]
 pub struct ChatConversationListRow {
     pub id: String,

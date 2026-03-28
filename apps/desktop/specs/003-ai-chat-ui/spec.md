@@ -1,8 +1,8 @@
 # Feature Specification: AI Chat for Vocabulary Practice
 
-**Feature Branch**: `003-ai-chat-ui`  
-**Created**: 2026-03-27  
-**Status**: Draft  
+**Feature Branch**: `003-ai-chat-ui`
+**Created**: 2026-03-27
+**Status**: Draft
 **Input**: User description: "Implement AI-powered chat for desktop language learning with selected collection context, required model selection, user-provided OpenRouter API key, and token usage display."
 
 ## User Scenarios & Testing *(mandatory)*

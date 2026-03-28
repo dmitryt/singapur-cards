@@ -177,6 +177,18 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Allows dictionary, cards, collections, review, languages, chat, and API key commands from the main window.",
+          "type": "string",
+          "const": "allow-app-ipc",
+          "markdownDescription": "Allows dictionary, cards, collections, review, languages, chat, and API key commands from the main window."
+        },
+        {
+          "description": "Allows the main window to close the splash window and show the main UI.",
+          "type": "string",
+          "const": "allow-splash-screen-finish",
+          "markdownDescription": "Allows the main window to close the splash window and show the main UI."
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",

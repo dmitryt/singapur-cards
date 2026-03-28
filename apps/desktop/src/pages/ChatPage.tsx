@@ -1,28 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import styled from "styled-components";
-import { Button } from "semantic-ui-react";
-import {
-  AssistantRuntimeProvider,
-  ThreadPrimitive,
-  MessagePrimitive,
-} from "@assistant-ui/react";
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useStore } from "../store";
-import {
-  useChatRuntime,
-  threadMessagesFromDto,
-} from "../features/chat/useChatRuntime";
-import { ChatComposer } from "../components/molecules";
-import AssistantMessage from "../components/organisms/AssistantMessage";
+import { useChatRuntime, threadMessagesFromDto } from "../features/chat/useChatRuntime";
 import {
   createChatConversation,
   listChatConversations,
   getChatMessages,
+  deleteChatConversation,
   type ChatConversationSummary,
 } from "../lib/tauri/commands";
 import type { ThreadMessage } from "@assistant-ui/core";
-
-// ── Layout ────────────────────────────────────────────────────────────────────
+import { ChatConversationSidebar } from "../components/organisms/ChatConversationSidebar";
+import { ChatSemanticThreadPanel } from "../components/organisms/ChatSemanticThreadPanel";
 
 const PageWrapper = styled.div`
   display: flex;
@@ -38,95 +29,6 @@ const HubRow = styled.div`
   min-height: 0;
 `;
 
-const ConversationSidebar = styled.aside`
-  width: 260px;
-  flex-shrink: 0;
-  border-right: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surface};
-  display: flex;
-  flex-direction: column;
-  padding: ${({ theme }) => theme.spacing.md};
-  gap: ${({ theme }) => theme.spacing.sm};
-`;
-
-const SidebarHeading = styled.div`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.textSecondary};
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-`;
-
-const ConversationList = styled.div`
-  overflow-y: auto;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.xs};
-`;
-
-const ConversationRow = styled.button<{ $active: boolean }>`
-  appearance: none;
-  font: inherit;
-  width: 100%;
-  text-align: left;
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  border: 1px solid
-    ${({ theme, $active }) => ($active ? theme.colors.primary : "transparent")};
-  background: ${({ $active }) =>
-    $active ? "rgba(33, 133, 208, 0.08)" : "transparent"};
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-
-  &:hover {
-    background-color: ${({ $active }) =>
-      $active ? "rgba(33, 133, 208, 0.1)" : "rgba(0,0,0,0.04)"};
-  }
-`;
-
-const ConversationTitle = styled.div`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-  color: ${({ theme }) => theme.colors.text};
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const ConversationMeta = styled.div`
-  font-size: ${({ theme }) => theme.fontSizes.xs};
-  color: ${({ theme }) => theme.colors.textSecondary};
-  margin-top: 2px;
-`;
-
-const MainColumn = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-`;
-
-const ThreadViewport = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: ${({ theme }) => theme.spacing.lg};
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.md};
-`;
-
-const UserMessageBubble = styled.div`
-  align-self: flex-end;
-  background-color: ${({ theme }) => theme.colors.primary};
-  color: white;
-  border-radius: 12px;
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  max-width: 70%;
-  word-break: break-word;
-`;
-
 const ErrorBanner = styled.div`
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -137,46 +39,11 @@ const ErrorBanner = styled.div`
   font-size: 0.875rem;
 `;
 
-const SetupGuidance = styled.p`
-  text-align: center;
-  color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: 0.875rem;
-  margin: auto 0;
-`;
-
 const CenteredStatus = styled.p`
   margin: auto;
   color: ${({ theme }) => theme.colors.textSecondary};
   font-size: ${({ theme }) => theme.fontSizes.sm};
 `;
-
-// ── User message component ────────────────────────────────────────────────────
-
-function UserMessage() {
-  return (
-    <MessagePrimitive.Root>
-      <UserMessageBubble>
-        <MessagePrimitive.Content />
-      </UserMessageBubble>
-    </MessagePrimitive.Root>
-  );
-}
-
-function formatConversationTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-}
-
-// ── ChatPage ──────────────────────────────────────────────────────────────────
 
 function ChatPage() {
   const location = useLocation();
@@ -188,9 +55,11 @@ function ChatPage() {
 
   const { collections, apiKeyExists, loadCollections, loadApiKeyStatus } = useStore();
 
-  const refreshConversations = useCallback(async () => {
+  const refreshConversations = useCallback(async (): Promise<ChatConversationSummary[] | null> => {
     const r = await listChatConversations();
-    if (r.ok) setConversations(r.data);
+    if (!r.ok) return null;
+    setConversations(r.data);
+    return r.data;
   }, []);
 
   useEffect(() => {
@@ -252,6 +121,32 @@ function ChatPage() {
     setSelectedCollectionId(conv.collectionId ?? null);
   }, []);
 
+  const handleRemoveConversation = useCallback(
+    async (id: string) => {
+      const del = await deleteChatConversation(id);
+      if (!del.ok) return;
+
+      const list = await refreshConversations();
+      if (list === null) return;
+
+      if (id !== activeConversationId) return;
+
+      if (list.length > 0) {
+        const next = list[0];
+        setActiveConversationId(next.id);
+        setSelectedModel(next.model ?? null);
+        setSelectedCollectionId(next.collectionId ?? null);
+      } else {
+        const c = await createChatConversation({});
+        if (!c.ok) return;
+        setActiveConversationId(c.data.id);
+        setLoadedMessages([]);
+        await refreshConversations();
+      }
+    },
+    [activeConversationId, refreshConversations],
+  );
+
   const { runtime, errorMessage } = useChatRuntime({
     conversationId: activeConversationId ?? "",
     initialMessages: loadedMessages,
@@ -279,64 +174,24 @@ function ChatPage() {
         )}
 
         <HubRow>
-          <ConversationSidebar>
-            <SidebarHeading>Conversations</SidebarHeading>
-            <Button
-              fluid
-              basic
-              size="small"
-              type="button"
-              data-testid="new-chat-button"
-              onClick={() => void handleNewChat()}
-            >
-              New chat
-            </Button>
-            <ConversationList>
-              {conversations.map((conv) => (
-                <ConversationRow
-                  key={conv.id}
-                  type="button"
-                  $active={conv.id === activeConversationId}
-                  data-testid={`conversation-row-${conv.id}`}
-                  onClick={() => selectConversation(conv)}
-                >
-                  <ConversationTitle>{conv.title}</ConversationTitle>
-                  <ConversationMeta>{formatConversationTime(conv.updatedAt)}</ConversationMeta>
-                </ConversationRow>
-              ))}
-            </ConversationList>
-          </ConversationSidebar>
+          <ChatConversationSidebar
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onNewChat={handleNewChat}
+            onSelectConversation={selectConversation}
+            onRemoveConversation={handleRemoveConversation}
+          />
 
-          <MainColumn>
-            <ThreadPrimitive.Root>
-              <ThreadViewport>
-                {!isConfigured && (
-                  <SetupGuidance data-testid="setup-guidance">
-                    Select a model and add your API key in Profile to start chatting.
-                  </SetupGuidance>
-                )}
-                <ThreadPrimitive.Viewport>
-                  <ThreadPrimitive.Messages
-                    components={{
-                      UserMessage,
-                      AssistantMessage,
-                    }}
-                  />
-                </ThreadPrimitive.Viewport>
-              </ThreadViewport>
-
-              <ChatComposer
-                key={activeConversationId}
-                selectedModel={selectedModel}
-                selectedCollectionId={selectedCollectionId}
-                collections={collections}
-                apiKeyExists={apiKeyExists}
-                sendDisabled={!isConfigured}
-                onModelChange={setSelectedModel}
-                onCollectionChange={setSelectedCollectionId}
-              />
-            </ThreadPrimitive.Root>
-          </MainColumn>
+          <ChatSemanticThreadPanel
+            activeConversationId={activeConversationId}
+            isConfigured={isConfigured}
+            selectedModel={selectedModel}
+            selectedCollectionId={selectedCollectionId}
+            collections={collections}
+            apiKeyExists={apiKeyExists}
+            onModelChange={setSelectedModel}
+            onCollectionChange={setSelectedCollectionId}
+          />
         </HubRow>
       </PageWrapper>
     </AssistantRuntimeProvider>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Singapur Cards</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: #f9fafb;
+        color: #212529;
+      }
+      .spinner {
+        width: 2.25rem;
+        height: 2.25rem;
+        border: 3px solid #d4d4d5;
+        border-top-color: #2185d0;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: #6c757d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="spinner" aria-hidden="true"></div>
+    <h1>Singapur Cards</h1>
+    <p>Loading…</p>
+  </body>
+</html>

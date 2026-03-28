@@ -8,6 +8,13 @@ export const SUPPORTED_MODELS = [
   { id: "google/gemini-flash-1.5", label: "Gemini Flash 1.5" },
 ] as const;
 
+/** User-facing model title for the chat header; falls back to the raw OpenRouter id. */
+export function resolveChatModelLabel(modelId: string | null | undefined): string {
+  if (!modelId?.trim()) return "Assistant";
+  const found = SUPPORTED_MODELS.find((m) => m.id === modelId);
+  return found?.label ?? modelId;
+}
+
 export const NO_COLLECTION_LABEL = "No collection";
 
 export const ERROR_COPY = {

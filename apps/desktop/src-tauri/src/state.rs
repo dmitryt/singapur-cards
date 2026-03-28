@@ -1,5 +1,7 @@
 use rusqlite::Connection;
-use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
 
 use crate::db::schema::run_migrations;
 
@@ -7,8 +9,12 @@ pub struct DbPool {
     pub conn: Mutex<Connection>,
 }
 
+/// Per in-flight chat stream; `true` requests cooperative cancellation (stop reading SSE, do not persist).
+pub type ChatStreamCancelMap = Mutex<HashMap<String, Arc<AtomicBool>>>;
+
 pub struct AppState {
     pub db: DbPool,
+    pub chat_stream_cancels: ChatStreamCancelMap,
 }
 
 impl AppState {
@@ -26,6 +32,7 @@ impl AppState {
             db: DbPool {
                 conn: Mutex::new(conn),
             },
+            chat_stream_cancels: Mutex::new(HashMap::new()),
         })
     }
 }
