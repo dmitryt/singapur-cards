@@ -44,4 +44,13 @@ export const GlobalStyles = createGlobalStyle`
   .dsl-star {
     color: ${({ theme }) => theme.colors.dsl.star};
   }
+
+  .model-answer-strong {
+    font-weight: 700;
+  }
+
+  .model-answer-highlight {
+    padding: 0 2px;
+    background-color: #ccc;
+  }
 `;

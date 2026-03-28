@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-splash-screen-finish"
+description = "Allows the main window to close the splash window and show the main UI."
+commands.allow = ["splash_screen_finish"]

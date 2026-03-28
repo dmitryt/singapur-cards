@@ -338,3 +338,153 @@ export async function listHeadwordsForLanguage(language: string, limit?: number)
     limit: limit ?? null,
   });
 }
+
+// ── Chat command wrappers ─────────────────────────────────────────────────────
+
+export type SendChatMessageInput = {
+  prompt: string;
+  model: string;
+  provider: string;
+  conversationId: string;
+  selectedCollectionId: string | null;
+  /** Correlates `chat_stream_*` events from the backend with this request. */
+  streamId: string;
+};
+
+export type TokenUsageData = {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+};
+
+export type SendChatMessageOutput = {
+  assistantMessage: string;
+  tokenUsage: TokenUsageData | null;
+  userMessageId: string;
+  assistantMessageId: string;
+};
+
+export type CreateChatConversationInput = {
+  model?: string | null;
+  collectionId?: string | null;
+};
+
+export type CreateChatConversationOutput = {
+  id: string;
+};
+
+export type DeleteChatConversationOutput = {
+  deletedConversationId: string;
+};
+
+export type ChatConversationSummary = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  model: string | null;
+  collectionId: string | null;
+};
+
+export type ChatMessageDto = {
+  id: string;
+  role: string;
+  body: string;
+  metadataJson: string | null;
+  createdAt: string;
+};
+
+export type ChatCommandFailure = {
+  ok: false;
+  code:
+    | "INVALID_INPUT"
+    | "NOT_FOUND"
+    | "KEY_REQUIRED"
+    | "UNEXPECTED_ERROR"
+    | "SECRET_STORE_READ_FAILED"
+    | "CANCELLED";
+  message: string;
+};
+
+export type SendChatMessageResult = CommandSuccess<SendChatMessageOutput> | ChatCommandFailure;
+
+export async function sendChatMessage(
+  input: SendChatMessageInput
+): Promise<SendChatMessageResult> {
+  return invoke<SendChatMessageResult>("send_chat_message", { input });
+}
+
+export async function cancelChatStream(streamId: string): Promise<void> {
+  return invoke<void>("cancel_chat_stream", { streamId });
+}
+
+export async function createChatConversation(
+  input: CreateChatConversationInput
+): Promise<CommandResult<CreateChatConversationOutput>> {
+  return invoke<CommandResult<CreateChatConversationOutput>>("create_chat_conversation", {
+    input,
+  });
+}
+
+export async function listChatConversations(): Promise<CommandResult<ChatConversationSummary[]>> {
+  return invoke<CommandResult<ChatConversationSummary[]>>("list_chat_conversations");
+}
+
+export async function getChatMessages(
+  conversationId: string
+): Promise<CommandResult<ChatMessageDto[]>> {
+  return invoke<CommandResult<ChatMessageDto[]>>("get_chat_messages", {
+    input: { conversationId },
+  });
+}
+
+export async function deleteChatConversation(
+  conversationId: string
+): Promise<CommandResult<DeleteChatConversationOutput>> {
+  return invoke<CommandResult<DeleteChatConversationOutput>>("delete_chat_conversation", {
+    input: { conversationId },
+  });
+}
+
+// ── Credential command wrappers ───────────────────────────────────────────────
+
+export type SaveApiCredentialInput = {
+  provider: string;
+  label?: string;
+  apiKey: string;
+};
+
+export type SaveApiCredentialOutput = {
+  credentialId: string;
+  provider: string;
+  maskedKey: string;
+};
+
+export type GetApiCredentialOutput = {
+  exists: boolean;
+  maskedKey: string | null;
+  label: string | null;
+};
+
+export type ApiKeyCommandFailure = {
+  ok: false;
+  code: "INVALID_INPUT" | "SECRET_STORE_UNAVAILABLE" | "SECRET_STORE_WRITE_FAILED" | "SECRET_STORE_READ_FAILED" | "SECRET_STORE_DELETE_FAILED" | "UNEXPECTED_ERROR";
+  message: string;
+};
+
+export async function saveApiCredential(
+  input: SaveApiCredentialInput
+): Promise<CommandSuccess<SaveApiCredentialOutput> | ApiKeyCommandFailure> {
+  return invoke("save_api_credential", { input });
+}
+
+export async function getApiCredential(
+  provider: string
+): Promise<CommandSuccess<GetApiCredentialOutput> | ApiKeyCommandFailure> {
+  return invoke("get_api_credential", { input: { provider } });
+}
+
+export async function deleteApiCredential(
+  provider: string
+): Promise<CommandSuccess<{ ok: boolean }> | ApiKeyCommandFailure> {
+  return invoke("delete_api_credential", { input: { provider } });
+}

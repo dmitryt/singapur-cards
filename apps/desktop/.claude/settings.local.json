@@ -18,7 +18,12 @@
       "Bash(.specify/scripts/bash/update-agent-context.sh claude:*)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh --json)",
       "Bash(cargo build:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm test:*)",
+      "Bash(git:*)"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "mcp-docs-server"
+  ]
 }

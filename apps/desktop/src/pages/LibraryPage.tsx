@@ -1,78 +1,117 @@
 import { useEffect, useState } from "react";
-import styled from "styled-components";
-import { Button, Loader, Dropdown, Confirm, Form, Input, TextArea, Message } from "semantic-ui-react";
+import styled, { keyframes } from "styled-components";
+import { Button, Loader, Dropdown, Confirm, Form, Input, TextArea, Message, Modal, Label, Icon } from "semantic-ui-react";
 import { useStore } from "../store";
-import type { CardListItem } from "../lib/tauri/commands";
-
-const LibraryLayout = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-  height: 100%;
-  overflow: hidden;
-`;
-
-const CardGrid = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.sm};
-`;
-
-const CardTile = styled.div<{ selected?: boolean }>`
-  padding: ${({ theme }) => theme.spacing.md};
-  border: 1px solid ${({ theme, selected }) =>
-    selected ? theme.colors.primary : theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
-  background: ${({ theme }) => theme.colors.surface};
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-  &:hover { border-color: ${({ theme }) => theme.colors.primary}; }
-`;
-
-const CardHeadword = styled.div`
-  font-weight: 600;
-  margin-bottom: 2px;
-`;
-
-const CardPreview = styled.div`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-  color: ${({ theme }) => theme.colors.textSecondary};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const StatusBadge = styled.span<{ status: string }>`
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 10px;
-  background: ${({ status }) =>
-    status === "learned" ? "#d4edda" :
-    status === "not_learned" ? "#f8d7da" :
-    "#e2e3e5"};
-  color: ${({ status }) =>
-    status === "learned" ? "#155724" :
-    status === "not_learned" ? "#721c24" :
-    "#383d41"};
-  display: inline-flex;
-  align-items: center;
-`;
-
-const DetailPanel = styled.div`
-  width: 380px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  padding: ${({ theme }) => theme.spacing.md};
-  background: ${({ theme }) => theme.colors.surface};
-`;
+import type { CardListItem, CardDetail } from "../lib/tauri/commands";
+import * as commands from "../lib/tauri/commands";
+import { dslToHtml } from "@/lib/dslToHtml";
 
 const FilterBar = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing.sm};
   margin-bottom: ${({ theme }) => theme.spacing.md};
+`;
+
+const CardGrid = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: ${({ theme }) => theme.spacing.md};
+  align-content: start;
+`;
+
+const statusBackground: Record<string, string> = {
+  learned: "#d4edda",
+  not_learned: "#f8d7da",
+  unreviewed: "#ffffff",
+};
+
+const flipIn = keyframes`
+  from { transform: rotateY(90deg); opacity: 0; }
+  to { transform: rotateY(0deg); opacity: 1; }
+`;
+
+const CardActions = styled.div`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: none;
+  gap: 4px;
+  z-index: 1;
+`;
+
+const CardTile = styled.div<{ status: string }>`
+  position: relative;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  background: ${({ status }) => statusBackground[status] ?? "#ffffff"};
+  cursor: pointer;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing.md};
+  text-align: center;
+  box-shadow: ${({ theme }) => theme.shadows.sm};
+  transition: box-shadow 0.15s ease;
+  overflow: hidden;
+
+  &:hover {
+    box-shadow: ${({ theme }) => theme.shadows.md};
+  }
+
+  &:hover ${CardActions} {
+    display: flex;
+  }
+`;
+
+const ActionBtn = styled.button`
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  &:hover {
+    background: #fff;
+    border-color: #aaa;
+  }
+
+  i {
+    margin: 0 !important;
+  }
+`;
+
+const CardContent = styled.div`
+  animation: ${flipIn} 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+`;
+
+const Headword = styled.div`
+  font-size: ${({ theme }) => theme.fontSizes.lg};
+  font-weight: 600;
+`;
+
+const CardBack = styled.div`
+  font-size: ${({ theme }) => theme.fontSizes.sm};
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 `;
 
 const statusOptions = [
@@ -83,55 +122,80 @@ const statusOptions = [
 ];
 
 function LibraryPage() {
-  const { cards, activeCard, isLoadingCards, loadCards, getCard, updateCard, deleteCard } = useStore();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { cards, isLoadingCards, loadCards, updateCard, deleteCard, collections, loadCollections } = useStore();
   const [statusFilter, setStatusFilter] = useState("");
-  const [editForm, setEditForm] = useState({ headword: "", answerText: "", exampleText: "", notes: "" });
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
+  const [editingCard, setEditingCard] = useState<CardDetail | null>(null);
+  const [editForm, setEditForm] = useState({ headword: "", answerText: "", exampleText: "", notes: "", collectionIds: [] as string[] });
+  const [deleteCardId, setDeleteCardId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadCards(undefined, statusFilter as "unreviewed" | "learned" | "not_learned" | undefined || undefined);
   }, [loadCards, statusFilter]);
 
-  const handleSelect = async (card: CardListItem) => {
-    setSelectedId(card.id);
-    await getCard(card.id);
+  useEffect(() => {
+    if (collections.length === 0) loadCollections();
+  }, []);
+
+  const handleFlip = (cardId: string) => {
+    setFlippedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(cardId)) next.delete(cardId);
+      else next.add(cardId);
+      return next;
+    });
   };
 
-  useEffect(() => {
-    if (activeCard) {
+  const handleEditClick = async (e: React.MouseEvent, card: CardListItem) => {
+    e.stopPropagation();
+    const result = await commands.getCard(card.id);
+    if (result.ok) {
+      setEditingCard(result.data);
       setEditForm({
-        headword: activeCard.headword,
-        answerText: activeCard.answerText,
-        exampleText: activeCard.exampleText ?? "",
-        notes: activeCard.notes ?? "",
+        headword: result.data.headword,
+        answerText: result.data.answerText,
+        exampleText: result.data.exampleText ?? "",
+        notes: result.data.notes ?? "",
+        collectionIds: result.data.collectionIds,
       });
     }
-  }, [activeCard]);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, cardId: string) => {
+    e.stopPropagation();
+    setDeleteCardId(cardId);
+  };
 
   const handleSave = async () => {
-    if (!activeCard) return;
+    if (!editingCard) return;
     setSaving(true);
     await updateCard({
-      cardId: activeCard.id,
-      language: activeCard.language,
+      cardId: editingCard.id,
+      language: editingCard.language,
       headword: editForm.headword,
       answerText: editForm.answerText,
       exampleText: editForm.exampleText || undefined,
       notes: editForm.notes || undefined,
-      collectionIds: activeCard.collectionIds,
+      collectionIds: editForm.collectionIds,
     });
     setSaving(false);
+    setEditingCard(null);
     await loadCards();
   };
 
   const handleDelete = async () => {
-    if (!activeCard) return;
-    await deleteCard(activeCard.id);
-    setSelectedId(null);
-    setConfirmDelete(false);
+    if (!deleteCardId) return;
+    await deleteCard(deleteCardId);
+    setFlippedCards(prev => {
+      const next = new Set(prev);
+      next.delete(deleteCardId);
+      return next;
+    });
+    setDeleteCardId(null);
   };
+
+  const collectionMap = Object.fromEntries(collections.map(c => [c.id, c.name]));
 
   if (isLoadingCards && cards.length === 0) {
     return <Loader active inline="centered" />;
@@ -150,78 +214,115 @@ function LibraryPage() {
         />
       </FilterBar>
 
-      <LibraryLayout>
+      {cards.length === 0 ? (
+        <Message info>
+          <Message.Header>No cards yet</Message.Header>
+          <p>Search for words and save them as cards from the headword detail page.</p>
+        </Message>
+      ) : (
         <CardGrid>
-          {cards.length === 0 ? (
-            <Message info>
-              <Message.Header>No cards yet</Message.Header>
-              <p>Search for words and save them as cards from the headword detail page.</p>
-            </Message>
-          ) : cards.map(card => (
-            <CardTile
-              key={card.id}
-              selected={card.id === selectedId}
-              onClick={() => handleSelect(card)}
-              tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && handleSelect(card)}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <CardHeadword>{card.headword}</CardHeadword>
-                <StatusBadge status={card.learningStatus}>{card.learningStatus}</StatusBadge>
-              </div>
-              <CardPreview>{card.answerText}</CardPreview>
-            </CardTile>
-          ))}
+          {cards.map(card => {
+            const isFlipped = flippedCards.has(card.id);
+            return (
+              <CardTile
+                key={card.id}
+                status={card.learningStatus}
+                onClick={() => handleFlip(card.id)}
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && handleFlip(card.id)}
+              >
+                <CardActions>
+                  <ActionBtn onClick={(e) => handleEditClick(e, card)} title="Edit">
+                    <Icon name="edit outline" />
+                  </ActionBtn>
+                  <ActionBtn onClick={(e) => handleDeleteClick(e, card.id)} title="Delete">
+                    <Icon name="trash alternate outline" />
+                  </ActionBtn>
+                </CardActions>
+                <CardContent key={String(isFlipped)}>
+                  {!isFlipped ? (
+                    <>
+                      <Headword>{card.headword}</Headword>
+                      {card.collectionIds.length > 0 && (
+                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center" }}>
+                          {card.collectionIds.map(cid =>
+                            collectionMap[cid] ? (
+                              <Label key={cid} size="mini" basic>{collectionMap[cid]}</Label>
+                            ) : null
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <CardBack dangerouslySetInnerHTML={{ __html: dslToHtml(card.answerText) }} />
+                  )}
+                </CardContent>
+              </CardTile>
+            );
+          })}
         </CardGrid>
+      )}
 
-        {activeCard && selectedId && (
-          <DetailPanel>
-            <h3 style={{ margin: "0 0 12px" }}>{activeCard.language} — {activeCard.headword}</h3>
-            <Form>
-              <Form.Field>
-                <label>Headword</label>
-                <Input
-                  value={editForm.headword}
-                  onChange={(e) => setEditForm(f => ({ ...f, headword: e.target.value }))}
-                />
-              </Form.Field>
-              <Form.Field>
-                <label>Answer / Definition</label>
-                <TextArea
-                  value={editForm.answerText}
-                  onChange={(e) => setEditForm(f => ({ ...f, answerText: e.target.value }))}
-                  rows={4}
-                />
-              </Form.Field>
-              <Form.Field>
-                <label>Example</label>
-                <Input
-                  value={editForm.exampleText}
-                  onChange={(e) => setEditForm(f => ({ ...f, exampleText: e.target.value }))}
-                />
-              </Form.Field>
-              <Form.Field>
-                <label>Notes</label>
-                <Input
-                  value={editForm.notes}
-                  onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
-                />
-              </Form.Field>
-              <div style={{ display: "flex", gap: "8px", justifyContent: "space-between" }}>
-                <Button primary size="small" onClick={handleSave} loading={saving}>Save</Button>
-                <Button size="small" color="red" basic onClick={() => setConfirmDelete(true)}>Delete</Button>
-              </div>
-            </Form>
-          </DetailPanel>
-        )}
-      </LibraryLayout>
+      <Modal open={editingCard !== null} onClose={() => setEditingCard(null)} size="small">
+        <Modal.Header>Edit Card</Modal.Header>
+        <Modal.Content>
+          <Form>
+            <Form.Field>
+              <label>Headword</label>
+              <Input
+                value={editForm.headword}
+                onChange={(e) => setEditForm(f => ({ ...f, headword: e.target.value }))}
+              />
+            </Form.Field>
+            <Form.Field>
+              <label>Answer / Definition</label>
+              <TextArea
+                value={editForm.answerText}
+                onChange={(e) => setEditForm(f => ({ ...f, answerText: e.target.value }))}
+                rows={4}
+              />
+            </Form.Field>
+            <Form.Field>
+              <label>Example</label>
+              <Input
+                value={editForm.exampleText}
+                onChange={(e) => setEditForm(f => ({ ...f, exampleText: e.target.value }))}
+              />
+            </Form.Field>
+            <Form.Field>
+              <label>Notes</label>
+              <Input
+                value={editForm.notes}
+                onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
+              />
+            </Form.Field>
+            <Form.Field>
+              <label>Collections</label>
+              <Dropdown
+                multiple
+                selection
+                fluid
+                options={collections.map(c => ({ key: c.id, value: c.id, text: c.name }))}
+                value={editForm.collectionIds}
+                onChange={(_, d) => setEditForm(f => ({ ...f, collectionIds: d.value as string[] }))}
+                disabled={collections.length === 0}
+                placeholder={collections.length === 0 ? "No collections available" : "Select collections"}
+              />
+            </Form.Field>
+          </Form>
+        </Modal.Content>
+        <Modal.Actions>
+          <Button onClick={() => setEditingCard(null)}>Cancel</Button>
+          <Button primary loading={saving} onClick={handleSave}>Save</Button>
+        </Modal.Actions>
+      </Modal>
 
       <Confirm
-        open={confirmDelete}
+        open={deleteCardId !== null}
         header="Delete card?"
         content="This will permanently delete this card. This action cannot be undone."
         confirmButton={{ content: "Delete", color: "red" } as object}
-        onCancel={() => setConfirmDelete(false)}
+        onCancel={() => setDeleteCardId(null)}
         onConfirm={handleDelete}
       />
     </div>

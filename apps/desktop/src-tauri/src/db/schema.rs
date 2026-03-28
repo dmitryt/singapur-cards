@@ -139,5 +139,49 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
          VALUES ('en', 'English', datetime('now'));",
     )?;
 
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS ai_credentials (
+            id TEXT PRIMARY KEY,
+            provider TEXT NOT NULL,
+            label TEXT,
+            is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );",
+    )?;
+
+    conn.execute_batch(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_ai_credentials_provider_active
+         ON ai_credentials(provider)
+         WHERE is_active = 1;",
+    )?;
+
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS chat_conversations (
+            id TEXT PRIMARY KEY NOT NULL,
+            title TEXT NOT NULL,
+            model TEXT,
+            collection_id TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );",
+    )?;
+
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS chat_messages (
+            id TEXT PRIMARY KEY NOT NULL,
+            conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+            role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+            body TEXT NOT NULL,
+            metadata_json TEXT,
+            created_at TEXT NOT NULL
+        );",
+    )?;
+
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_created
+            ON chat_messages(conversation_id, created_at);",
+    )?;
+
     Ok(())
 }

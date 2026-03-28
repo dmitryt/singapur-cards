@@ -137,6 +137,21 @@ impl CommandFailure {
     pub fn file_read_failed(message: impl Into<String>) -> Self {
         Self::new("FILE_READ_FAILED", message)
     }
+    pub fn key_required(message: impl Into<String>) -> Self {
+        Self::new("KEY_REQUIRED", message)
+    }
+    pub fn secret_store_unavailable(message: impl Into<String>) -> Self {
+        Self::new("SECRET_STORE_UNAVAILABLE", message)
+    }
+    pub fn secret_store_write_failed(message: impl Into<String>) -> Self {
+        Self::new("SECRET_STORE_WRITE_FAILED", message)
+    }
+    pub fn secret_store_read_failed(message: impl Into<String>) -> Self {
+        Self::new("SECRET_STORE_READ_FAILED", message)
+    }
+    pub fn secret_store_delete_failed(message: impl Into<String>) -> Self {
+        Self::new("SECRET_STORE_DELETE_FAILED", message)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -179,6 +194,17 @@ pub struct CreateLanguageInput {
 pub struct UpdateLanguageInput {
     pub code: String,
     pub title: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiCredential {
+    pub id: String,
+    pub provider: String,
+    pub label: Option<String>,
+    pub is_active: i64,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
