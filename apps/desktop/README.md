@@ -9,6 +9,10 @@ Singapur Cards helps you:
 - organize cards into collections
 - run local review sessions and persist progress
 
+## Preview
+
+![App Preview](./docs//AppRecording.mov.gif)
+
 > [!NOTE]
 > The app is designed to work without network connectivity during normal use. Dictionary data, cards, collections, and review history are stored locally in SQLite.
 
