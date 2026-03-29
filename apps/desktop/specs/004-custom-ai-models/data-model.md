@@ -30,5 +30,5 @@ Each option row: `value` = `name` string; `text` = `title` for display.
 
 - **Load app**: `invoke('list_custom_models')` → set `customModels`. On error: treat as `[]`, optional user message once.
 - **Add**: Modal save → normalize → reject if duplicate → `invoke('add_custom_model', { name, title, provider })` → update state.
-- **Remove**: Manage modal → `invoke('delete_custom_model', { name })` → if `selectedModel` was removed, set fallback id.
+- **Remove**: Models page delete → `invoke('delete_custom_model', { name })` → if `selectedModel` was removed, set fallback id.
 - **Command error**: Catch `invoke` rejection; show non-blocking message; keep in-memory state intact.

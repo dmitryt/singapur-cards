@@ -22,33 +22,33 @@
 
 ## 3. Fallback model (FR-010)
 
-**Decision**: When the active model is removed, set selection to the first model in FR-012 order (first saved model by title), or `null` if none remain.
+**Decision**: When the active model is removed, set selection to the first model in FR-013 order (first saved model by title), or `null` if none remain.
 
 **Rationale**: No built-in catalog exists; the DB starts empty so there is no stable hardcoded default to reference.
 
 ---
 
-## 4. UI: additions + modal
+## 4. UI: add flow
 
-**Decision**: Use Semantic UI `Dropdown` with **`allowAdditions`**, **`additionLabel`** invoking **Add new…**, **`onAddItem`** opening a small **Modal** with two inputs (Model id / Display title) and Save/Cancel. On Save, validate, persist, close, refresh options.
+**Decision**: Dedicated **Models page** (accessible from main navigation via react-router-dom) hosts the add form: provider selector from `SUPPORTED_PROVIDERS` (Semantic UI `Dropdown`), model id input, display title input, and Save/Cancel. On Save, validate, persist via `add_custom_model`, refresh list.
 
-**Rationale**: Aligns with `save-models-prompt.md` and existing `SUIDropdown` in `ChatComposer`.
+**Rationale**: FR-002 requires a dedicated Models page in main nav; keeping add/manage in one place avoids two separate surfaces and matches the SUPPORTED_PROVIDERS provider-filter UX (FR-003, FR-004).
 
-**Alternatives considered**: Inline only without modal — worse validation UX; spec wants explicit dialog.
-
----
-
-## 5. Deletion UX (FR-008)
-
-**Decision**: **“Manage models”** secondary control (link or small button) near the model dropdown opening a **Modal** listing **only user-saved** rows with identifier, title, and **Delete** per row. Inline × on dropdown items is optional later; modal satisfies FR-008 with minimal Dropdown API surface.
-
-**Rationale**: Clear bulk visibility; avoids crowding the inline menu; matches spec “or dedicated management view”.
-
-**Alternatives considered**: Delete icon only in dropdown — acceptable but harder with Semantic grouped options; deferred.
+**Alternatives considered**: Modal triggered from ChatComposer dropdown — rejected in favour of dedicated Models page per spec FR-002.
 
 ---
 
-## 6. Ordering (FR-012)
+## 5. Deletion UX (FR-010)
+
+**Decision**: Per-row **Delete** button on the **Models page**, listing all saved entries filtered by selected provider. No separate modal needed; the page itself is the management surface.
+
+**Rationale**: Dedicated Models page already surfaces all entries; inline delete per row is the simplest affordance; avoids nesting modal-in-modal.
+
+**Alternatives considered**: Delete icon inline in chat dropdown — acceptable but harder with Semantic grouped options; deferred.
+
+---
+
+## 6. Ordering (FR-013)
 
 **Decision**: Build options array as saved entries sorted by `title.trim()` case-insensitive (`localeCompare`). DB starts empty; no built-in catalog.
 

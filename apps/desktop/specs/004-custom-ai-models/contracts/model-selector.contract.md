@@ -1,4 +1,4 @@
-# UI contract: Model selector (Chat)
+# UI contract: Model selector (Chat + Models page)
 
 ## Test IDs (stable)
 
@@ -6,21 +6,22 @@ All IDs below are pinned. Do not rename without updating tests.
 
 | Element | `data-testid` |
 |---------|----------------|
-| Model dropdown trigger | `model-selector` |
+| Model dropdown trigger (Chat) | `model-selector` |
 | Composer send | `composer-send` |
-| Add custom modal root | `custom-model-modal` |
-| Manage models modal root | `manage-custom-models-modal` |
+| Models page root | `models-page` |
+| Provider selector | `models-provider-selector` |
+| Add model form | `add-model-form` |
 | Save new model button | `custom-model-save` |
 | Delete custom row button | `custom-model-delete` (include index or id in tests via `getAllByTestId`) |
 
 ## Behaviors
 
-1. **Options order**: Built-in models (catalog order) first; then custom models sorted by display title (case-insensitive).
+1. **Options order**: User-saved models sorted alphabetically by display title (case-insensitive).
 2. **Selection**: `value` is the model id string; empty string means none where the Dropdown requires a value.
-3. **Add flow**: User triggers addition → modal collects `name`, `title`, and `provider` (all required) → Save validates → storage updated → dropdown options refresh.
-4. **Manage flow**: User opens manage modal → list shows only custom entries → Delete removes from storage and refreshes options; if removed item was selected, apply fallback per FR-010 (configured default if present, else first model in FR-012 order).
+3. **Add flow**: User navigates to Models page → selects provider from `SUPPORTED_PROVIDERS` → enters `name` and `title` → Save validates (both non-empty, no duplicate) → storage updated → model list refreshes.
+4. **Delete flow**: User opens Models page → provider filter shows entries for selected provider → Delete removes from storage and refreshes list; if removed item was active selection in Chat, apply fallback per FR-012 (first model in FR-013 order, or explicit empty state if none remain).
 
 ## Accessibility (minimal)
 
-- Modal fields have associated `<label>` or `aria-label`.
+- Form fields have associated `<label>` or `aria-label`.
 - Delete actions are keyboard reachable.

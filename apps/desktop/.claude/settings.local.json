@@ -20,7 +20,12 @@
       "Bash(cargo build:*)",
       "Bash(npx tsc:*)",
       "Bash(npm test:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//Users/gremlin/projects/singapur-cards/specs/004-custom-ai-models/**)",
+      "Bash(done)"
     ]
   },
   "disabledMcpjsonServers": [
