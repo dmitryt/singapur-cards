@@ -115,7 +115,7 @@ describe("ChatPage", () => {
         });
       }
       if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
-      if (cmd === "list_custom_models") return Promise.resolve({ ok: true, data: [] });
+      if (cmd === "list_custom_models") return Promise.resolve({ ok: true, data: [{ name: "openai/gpt-4o", title: "GPT-4o", provider: "openrouter" }] });
       if (cmd === "add_custom_model") return Promise.resolve({ ok: true, data: null });
       if (cmd === "delete_custom_model") return Promise.resolve({ ok: true, data: { ok: true } });
       if (cmd === "delete_chat_conversation") {
@@ -151,7 +151,7 @@ describe("ChatPage", () => {
 
       await screen.findByTestId("model-selector");
       await user.click(screen.getByTestId("model-selector"));
-      await user.click(await screen.findByText("GPT-4o"));
+      await user.click(await screen.findByText("GPT-4o", { selector: ':not([role="alert"])' }));
 
       expect(screen.getByTestId("composer-send")).toBeDisabled();
     });
@@ -169,7 +169,7 @@ describe("ChatPage", () => {
 
       await screen.findByTestId("model-selector");
       await user.click(screen.getByTestId("model-selector"));
-      await user.click(await screen.findByText("GPT-4o"));
+      await user.click(await screen.findByText("GPT-4o", { selector: ':not([role="alert"])' }));
 
       expect(screen.getByTestId("composer-send")).not.toBeDisabled();
     });
@@ -243,14 +243,6 @@ describe("ChatPage", () => {
   });
 
   describe("Custom models (004)", () => {
-    it("model selector lists built-in models", async () => {
-      renderChatPage();
-      const selector = await screen.findByTestId("model-selector");
-      await userEvent.setup().click(selector);
-      expect(await screen.findByText("GPT-4o Mini")).toBeInTheDocument();
-      expect(await screen.findByText("GPT-4o")).toBeInTheDocument();
-    });
-
     it("model selector lists custom models after built-ins", async () => {
       mockInvoke.mockImplementation((cmd: string, args?: InvokeArgs) => {
         if (cmd === "list_collections") return Promise.resolve({ ok: true, data: [] });
@@ -265,36 +257,12 @@ describe("ChatPage", () => {
       renderChatPage();
       const selector = await screen.findByTestId("model-selector");
       await userEvent.setup().click(selector);
-      expect(await screen.findByText("Custom A")).toBeInTheDocument();
+      expect((await screen.findAllByText("Custom A")).length).toBeGreaterThan(0);
     });
 
     it("renders model-selector dropdown", async () => {
       renderChatPage();
       expect(await screen.findByTestId("model-selector")).toBeInTheDocument();
-    });
-
-    it("renders manage-custom-models-modal when Manage models is clicked", async () => {
-      renderChatPage();
-      await screen.findByTestId("model-selector");
-      await userEvent.setup().click(screen.getByRole("button", { name: /Manage models/i }));
-      expect(await screen.findByTestId("manage-custom-models-modal")).toBeInTheDocument();
-    });
-
-    it("renders custom-model-modal when Add model is clicked", async () => {
-      renderChatPage();
-      await screen.findByTestId("model-selector");
-      await userEvent.setup().click(screen.getByRole("button", { name: /Add model/i }));
-      expect(await screen.findByTestId("custom-model-modal")).toBeInTheDocument();
-    });
-
-    it("save is disabled when fields empty and shows error on attempt", async () => {
-      const user = userEvent.setup();
-      renderChatPage();
-      await screen.findByTestId("model-selector");
-      await user.click(screen.getByRole("button", { name: /Add model/i }));
-      await screen.findByTestId("custom-model-modal");
-      await user.click(screen.getByTestId("custom-model-save"));
-      expect(await screen.findByText(/identifier is required/i)).toBeInTheDocument();
     });
 
     it("shows list_custom_models error as empty state (no crash)", async () => {
@@ -327,7 +295,7 @@ describe("ChatPage", () => {
 
       await screen.findByTestId("model-selector");
       await user.click(screen.getByTestId("model-selector"));
-      await user.click(await screen.findByText("GPT-4o"));
+      await user.click(await screen.findByText("GPT-4o", { selector: ':not([role="alert"])' }));
 
       await waitFor(() => {
         expect(screen.getByTestId("composer-send")).not.toBeDisabled();

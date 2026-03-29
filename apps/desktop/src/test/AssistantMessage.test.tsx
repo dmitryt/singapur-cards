@@ -109,6 +109,6 @@ describe("AssistantMessage — T026 token usage rendering", () => {
       },
     };
     renderMessage();
-    expect(screen.getByTestId("assistant-model-label")).toHaveTextContent("GPT-4o Mini");
+    expect(screen.getByTestId("assistant-model-label")).toHaveTextContent("openai/gpt-4o-mini");
   });
 });
