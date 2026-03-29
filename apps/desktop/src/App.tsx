@@ -12,6 +12,7 @@ import CollectionsPage from "./pages/CollectionsPage";
 import ReviewPage from "./pages/ReviewPage";
 import ProfilePage from "./pages/ProfilePage";
 import ChatPage from "./pages/ChatPage";
+import ModelsPage from "./pages/ModelsPage";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/languages" element={<LanguagePage />} />
             <Route path="/dictionaries" element={<DictionaryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/models" element={<ModelsPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route element={<PageWithSearchBar />}>
               <Route path="/library" element={<LibraryPage />} />

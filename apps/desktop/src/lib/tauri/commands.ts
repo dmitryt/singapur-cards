@@ -445,6 +445,36 @@ export async function deleteChatConversation(
   });
 }
 
+// ── Custom model command wrappers ─────────────────────────────────────────────
+
+export type SavedModelItem = {
+  name: string;
+  title: string;
+  provider: string;
+};
+
+export type AddCustomModelInput = {
+  name: string;
+  title: string;
+  provider: string;
+};
+
+export async function listCustomModels(): Promise<CommandResult<SavedModelItem[]>> {
+  return invoke<CommandResult<SavedModelItem[]>>("list_custom_models");
+}
+
+export async function addCustomModel(
+  input: AddCustomModelInput
+): Promise<CommandResult<SavedModelItem>> {
+  return invoke<CommandResult<SavedModelItem>>("add_custom_model", { input });
+}
+
+export async function deleteCustomModel(
+  name: string
+): Promise<CommandResult<{ ok: boolean }>> {
+  return invoke<CommandResult<{ ok: boolean }>>("delete_custom_model", { input: { name } });
+}
+
 // ── Credential command wrappers ───────────────────────────────────────────────
 
 export type SaveApiCredentialInput = {

@@ -757,6 +757,53 @@ pub fn fetch_active_credential(
     }
 }
 
+// ── Custom chat models ────────────────────────────────────────────────────────
+
+#[derive(Debug)]
+pub struct CustomChatModelRow {
+    pub name: String,
+    pub title: String,
+    pub provider: String,
+}
+
+pub fn list_custom_models(conn: &Connection) -> Result<Vec<CustomChatModelRow>> {
+    let mut stmt = conn.prepare(
+        "SELECT name, title, provider FROM custom_chat_models ORDER BY created_at ASC",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(CustomChatModelRow {
+            name: row.get(0)?,
+            title: row.get(1)?,
+            provider: row.get(2)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn insert_custom_model(
+    conn: &Connection,
+    id: &str,
+    name: &str,
+    title: &str,
+    provider: &str,
+    created_at: &str,
+) -> Result<()> {
+    conn.execute(
+        "INSERT INTO custom_chat_models (id, name, title, provider, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![id, name, title, provider, created_at],
+    )?;
+    Ok(())
+}
+
+pub fn delete_custom_model(conn: &Connection, name: &str) -> Result<usize> {
+    let n = conn.execute(
+        "DELETE FROM custom_chat_models WHERE LOWER(name) = LOWER(?1)",
+        params![name],
+    )?;
+    Ok(n)
+}
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 pub fn normalize_headword(headword: &str) -> String {

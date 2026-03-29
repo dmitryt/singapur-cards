@@ -115,6 +115,9 @@ describe("ChatPage", () => {
         });
       }
       if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
+      if (cmd === "list_custom_models") return Promise.resolve({ ok: true, data: [] });
+      if (cmd === "add_custom_model") return Promise.resolve({ ok: true, data: null });
+      if (cmd === "delete_custom_model") return Promise.resolve({ ok: true, data: { ok: true } });
       if (cmd === "delete_chat_conversation") {
         const id = conversationIdFromInvokeArgs(args);
         mockChatConversationRows = mockChatConversationRows.filter((c) => c.id !== id);
@@ -236,6 +239,76 @@ describe("ChatPage", () => {
         expect(screen.getByTestId("conversation-row-test-conv-2")).toBeInTheDocument();
       });
       expect(screen.queryByTestId("conversation-row-test-conv-1")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Custom models (004)", () => {
+    it("model selector lists built-in models", async () => {
+      renderChatPage();
+      const selector = await screen.findByTestId("model-selector");
+      await userEvent.setup().click(selector);
+      expect(await screen.findByText("GPT-4o Mini")).toBeInTheDocument();
+      expect(await screen.findByText("GPT-4o")).toBeInTheDocument();
+    });
+
+    it("model selector lists custom models after built-ins", async () => {
+      mockInvoke.mockImplementation((cmd: string, args?: InvokeArgs) => {
+        if (cmd === "list_collections") return Promise.resolve({ ok: true, data: [] });
+        if (cmd === "get_api_credential") return Promise.resolve({ ok: true, data: { exists: false, maskedKey: null, label: null } });
+        if (cmd === "list_chat_conversations") return Promise.resolve({ ok: true, data: [{ ...defaultConversationRow }] });
+        if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
+        if (cmd === "list_custom_models") return Promise.resolve({ ok: true, data: [{ name: "custom/model-a", title: "Custom A", provider: "custom" }] });
+        if (cmd === "add_custom_model") return Promise.resolve({ ok: true, data: null });
+        if (cmd === "delete_custom_model") return Promise.resolve({ ok: true, data: { ok: true } });
+        return Promise.resolve({ ok: true, data: null });
+      });
+      renderChatPage();
+      const selector = await screen.findByTestId("model-selector");
+      await userEvent.setup().click(selector);
+      expect(await screen.findByText("Custom A")).toBeInTheDocument();
+    });
+
+    it("renders model-selector dropdown", async () => {
+      renderChatPage();
+      expect(await screen.findByTestId("model-selector")).toBeInTheDocument();
+    });
+
+    it("renders manage-custom-models-modal when Manage models is clicked", async () => {
+      renderChatPage();
+      await screen.findByTestId("model-selector");
+      await userEvent.setup().click(screen.getByRole("button", { name: /Manage models/i }));
+      expect(await screen.findByTestId("manage-custom-models-modal")).toBeInTheDocument();
+    });
+
+    it("renders custom-model-modal when Add model is clicked", async () => {
+      renderChatPage();
+      await screen.findByTestId("model-selector");
+      await userEvent.setup().click(screen.getByRole("button", { name: /Add model/i }));
+      expect(await screen.findByTestId("custom-model-modal")).toBeInTheDocument();
+    });
+
+    it("save is disabled when fields empty and shows error on attempt", async () => {
+      const user = userEvent.setup();
+      renderChatPage();
+      await screen.findByTestId("model-selector");
+      await user.click(screen.getByRole("button", { name: /Add model/i }));
+      await screen.findByTestId("custom-model-modal");
+      await user.click(screen.getByTestId("custom-model-save"));
+      expect(await screen.findByText(/identifier is required/i)).toBeInTheDocument();
+    });
+
+    it("shows list_custom_models error as empty state (no crash)", async () => {
+      mockInvoke.mockImplementation((cmd: string, _args?: InvokeArgs) => {
+        if (cmd === "list_custom_models") return Promise.resolve({ ok: false, code: "UNEXPECTED_ERROR", message: "DB error" });
+        if (cmd === "list_collections") return Promise.resolve({ ok: true, data: [] });
+        if (cmd === "get_api_credential") return Promise.resolve({ ok: true, data: { exists: false, maskedKey: null, label: null } });
+        if (cmd === "list_chat_conversations") return Promise.resolve({ ok: true, data: [{ ...defaultConversationRow }] });
+        if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
+        return Promise.resolve({ ok: true, data: null });
+      });
+      renderChatPage();
+      // Page should render without crashing even when list_custom_models fails
+      expect(await screen.findByTestId("model-selector")).toBeInTheDocument();
     });
   });
 

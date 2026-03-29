@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://singapur-cards.local/schemas/custom-chat-models-storage.json",
+  "title": "CustomChatModelsStorage",
+  "description": "Shape of SavedModel records returned by the list_custom_models Tauri command and used as the TypeScript type contract",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "title", "provider"],
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Model identifier (e.g. OpenRouter id)"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Human-readable label for dropdowns"
+      },
+      "provider": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Provider or grouping label"
+      }
+    }
+  }
+}

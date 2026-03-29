@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Button, Progress, Message, Confirm, Modal, Form, Input } from "semantic-ui-react";
+import { Button, Progress, Message, Confirm, Modal, Form, Dropdown, Input } from "semantic-ui-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useStore } from "../../store";
 
@@ -37,7 +37,10 @@ function DictionaryManager() {
   const {
     dictionaries, importStatus, importProgress, importError,
     loadDictionaries, importDictionary, removeDictionary,
+    languages, loadLanguages,
   } = useStore();
+
+  const languageOptions = languages.map((l) => ({ key: l.code, value: l.title, text: l.title }));
 
   const [removeConfirmId, setRemoveConfirmId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -45,7 +48,8 @@ function DictionaryManager() {
 
   useEffect(() => {
     loadDictionaries();
-  }, [loadDictionaries]);
+    loadLanguages();
+  }, [loadDictionaries, loadLanguages]);
 
   const handleImportClick = async () => {
     setImportModalOpen(true);
@@ -147,18 +151,24 @@ function DictionaryManager() {
           <Form>
             <Form.Field required>
               <label>Source language (language you search in)</label>
-              <Input
-                placeholder="e.g. English"
+              <Dropdown
+                placeholder="Select language"
+                fluid
+                selection
+                options={languageOptions}
                 value={importForm.langFrom}
-                onChange={(e) => setImportForm(f => ({ ...f, langFrom: e.target.value }))}
+                onChange={(_e, { value }) => setImportForm(f => ({ ...f, langFrom: value as string }))}
               />
             </Form.Field>
             <Form.Field required>
               <label>Target language (language of definitions)</label>
-              <Input
-                placeholder="e.g. German"
+              <Dropdown
+                placeholder="Select language"
+                fluid
+                selection
+                options={languageOptions}
                 value={importForm.langTo}
-                onChange={(e) => setImportForm(f => ({ ...f, langTo: e.target.value }))}
+                onChange={(_e, { value }) => setImportForm(f => ({ ...f, langTo: value as string }))}
               />
             </Form.Field>
             <Form.Field>

@@ -9,7 +9,9 @@ import {
   listChatConversations,
   getChatMessages,
   deleteChatConversation,
+  listCustomModels,
   type ChatConversationSummary,
+  type SavedModelItem,
 } from "../lib/tauri/commands";
 import type { ThreadMessage } from "@assistant-ui/core";
 import { ChatConversationSidebar } from "../components/organisms/ChatConversationSidebar";
@@ -49,6 +51,7 @@ function ChatPage() {
   const location = useLocation();
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+  const [customModels, setCustomModels] = useState<SavedModelItem[]>([]);
   const [conversations, setConversations] = useState<ChatConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [loadedMessages, setLoadedMessages] = useState<ThreadMessage[]>([]);
@@ -89,6 +92,22 @@ function ChatPage() {
     loadCollections();
     loadApiKeyStatus();
   }, [loadCollections, loadApiKeyStatus, location.key]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const r = await listCustomModels();
+      if (cancelled) return;
+      if (r.ok) {
+        setCustomModels(Array.isArray(r.data) ? r.data : []);
+      } else {
+        setCustomModels([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [location.key]);
 
   useEffect(() => {
     if (!activeConversationId) return;
@@ -147,6 +166,7 @@ function ChatPage() {
     [activeConversationId, refreshConversations],
   );
 
+
   const { runtime, errorMessage } = useChatRuntime({
     conversationId: activeConversationId ?? "",
     initialMessages: loadedMessages,
@@ -188,6 +208,7 @@ function ChatPage() {
             selectedModel={selectedModel}
             selectedCollectionId={selectedCollectionId}
             collections={collections}
+            customModels={customModels}
             apiKeyExists={apiKeyExists}
             onModelChange={setSelectedModel}
             onCollectionChange={setSelectedCollectionId}

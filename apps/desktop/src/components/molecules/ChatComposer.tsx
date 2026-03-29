@@ -1,8 +1,9 @@
 import styled from "styled-components";
 import { Button, TextArea, Dropdown as SUIDropdown } from "semantic-ui-react";
 import { ComposerPrimitive } from "@assistant-ui/react";
-import { SUPPORTED_MODELS, NO_COLLECTION_LABEL } from "../../features/chat/constants";
-import type { CollectionListItem } from "../../lib/tauri/commands";
+import { NO_COLLECTION_LABEL } from "../../features/chat/constants";
+import type { CollectionListItem, SavedModelItem } from "../../lib/tauri/commands";
+import { useMemo } from "react";
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -66,6 +67,7 @@ interface ChatComposerProps {
   selectedModel: string | null;
   selectedCollectionId: string | null;
   collections: CollectionListItem[];
+  customModels: SavedModelItem[];
   apiKeyExists: boolean;
   sendDisabled: boolean;
   onModelChange: (value: string | null) => void;
@@ -78,19 +80,16 @@ export function ChatComposer({
   selectedModel,
   selectedCollectionId,
   collections,
+  customModels,
   apiKeyExists,
   sendDisabled,
   onModelChange,
   onCollectionChange,
 }: ChatComposerProps) {
-  const modelOptions = SUPPORTED_MODELS.map((m) => ({ key: m.id, value: m.id, text: m.label }));
 
-  const collectionOptions = [
-    { key: "__none__", value: "", text: NO_COLLECTION_LABEL },
-    ...collections.map((c) => ({ key: c.id, value: c.id, text: c.name })),
-  ];
+  const collectionOptions = useMemo (() => collections.map((c) => ({ key: c.id, value: c.id, text: c.name })), [collections]);
+  const modelOptions = useMemo (() => customModels.map((c) => ({ key: c.name, value: c.name, text: c.title })), [customModels]);
 
-  const selectedModelLabel = SUPPORTED_MODELS.find((m) => m.id === selectedModel)?.label;
   const selectedCollectionLabel = collections.find((c) => c.id === selectedCollectionId)?.name;
 
   return (
@@ -110,11 +109,12 @@ export function ChatComposer({
           <ChipDropdownWrapper>
             <SUIDropdown
               inline
+              upward
               data-testid="model-selector"
+              placeholder="Select a model…"
               options={modelOptions}
               value={selectedModel ?? ""}
               onChange={(_e, { value }) => onModelChange((value as string) || null)}
-              text={selectedModelLabel ?? "Select a model…"}
             />
           </ChipDropdownWrapper>
 
@@ -122,6 +122,7 @@ export function ChatComposer({
             <SUIDropdown
               inline
               data-testid="collection-selector"
+              placeholder="No Collection"
               options={collectionOptions}
               value={selectedCollectionId ?? ""}
               onChange={(_e, { value }) => onCollectionChange((value as string) || null)}
