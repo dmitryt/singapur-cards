@@ -55,6 +55,9 @@ pub fn run() {
             api_key::save_api_credential,
             api_key::get_api_credential,
             api_key::delete_api_credential,
+            custom_models::list_custom_models,
+            custom_models::add_custom_model,
+            custom_models::delete_custom_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -183,5 +183,15 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             ON chat_messages(conversation_id, created_at);",
     )?;
 
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS custom_chat_models (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            provider TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );",
+    )?;
+
     Ok(())
 }

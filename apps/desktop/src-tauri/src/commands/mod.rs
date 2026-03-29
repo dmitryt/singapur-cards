@@ -3,6 +3,7 @@ pub mod cards;
 pub mod chat;
 pub mod chat_history;
 pub mod collections;
+pub mod custom_models;
 pub mod dictionary;
 pub mod languages;
 pub mod review;

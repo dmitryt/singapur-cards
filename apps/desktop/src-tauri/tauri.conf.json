@@ -29,7 +29,7 @@
         "width": 420,
         "height": 320,
         "resizable": false,
-        "decorations": true,
+        "decorations": false,
         "center": true
       }
     ],

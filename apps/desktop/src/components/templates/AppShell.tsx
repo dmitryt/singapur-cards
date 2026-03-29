@@ -133,6 +133,15 @@ function AppShell({ children }: AppShellProps) {
           </NavItem>
           <NavItem>
             <NavLink
+              to="/models"
+              className={({ isActive }) => isActive ? "active" : ""}
+            >
+              <Icon name="microchip" />
+              Models
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
               to="/profile"
               className={({ isActive }) => isActive ? "active" : ""}
             >

@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import { Container } from "semantic-ui-react";
 import { ThreadPrimitive } from "@assistant-ui/react";
-import type { CollectionListItem } from "../../lib/tauri/commands";
+import type { CollectionListItem, SavedModelItem } from "../../lib/tauri/commands";
 import { ChatComposer } from "../molecules";
 import {
   AssistantMessage,
@@ -57,6 +57,7 @@ export interface ChatSemanticThreadPanelProps {
   selectedModel: string | null;
   selectedCollectionId: string | null;
   collections: CollectionListItem[];
+  customModels: SavedModelItem[];
   apiKeyExists: boolean;
   onModelChange: (model: string | null) => void;
   onCollectionChange: (collectionId: string | null) => void;
@@ -68,6 +69,7 @@ export function ChatSemanticThreadPanel({
   selectedModel,
   selectedCollectionId,
   collections,
+  customModels,
   apiKeyExists,
   onModelChange,
   onCollectionChange,
@@ -99,6 +101,7 @@ export function ChatSemanticThreadPanel({
                 selectedModel={selectedModel}
                 selectedCollectionId={selectedCollectionId}
                 collections={collections}
+                customModels={customModels}
                 apiKeyExists={apiKeyExists}
                 sendDisabled={!isConfigured}
                 onModelChange={onModelChange}

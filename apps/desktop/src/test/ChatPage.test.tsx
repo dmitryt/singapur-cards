@@ -115,6 +115,9 @@ describe("ChatPage", () => {
         });
       }
       if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
+      if (cmd === "list_custom_models") return Promise.resolve({ ok: true, data: [{ name: "openai/gpt-4o", title: "GPT-4o", provider: "openrouter" }] });
+      if (cmd === "add_custom_model") return Promise.resolve({ ok: true, data: null });
+      if (cmd === "delete_custom_model") return Promise.resolve({ ok: true, data: { ok: true } });
       if (cmd === "delete_chat_conversation") {
         const id = conversationIdFromInvokeArgs(args);
         mockChatConversationRows = mockChatConversationRows.filter((c) => c.id !== id);
@@ -148,7 +151,7 @@ describe("ChatPage", () => {
 
       await screen.findByTestId("model-selector");
       await user.click(screen.getByTestId("model-selector"));
-      await user.click(await screen.findByText("GPT-4o"));
+      await user.click(await screen.findByText("GPT-4o", { selector: ':not([role="alert"])' }));
 
       expect(screen.getByTestId("composer-send")).toBeDisabled();
     });
@@ -166,7 +169,7 @@ describe("ChatPage", () => {
 
       await screen.findByTestId("model-selector");
       await user.click(screen.getByTestId("model-selector"));
-      await user.click(await screen.findByText("GPT-4o"));
+      await user.click(await screen.findByText("GPT-4o", { selector: ':not([role="alert"])' }));
 
       expect(screen.getByTestId("composer-send")).not.toBeDisabled();
     });
@@ -239,6 +242,44 @@ describe("ChatPage", () => {
     });
   });
 
+  describe("Custom models (004)", () => {
+    it("model selector lists custom models after built-ins", async () => {
+      mockInvoke.mockImplementation((cmd: string, args?: InvokeArgs) => {
+        if (cmd === "list_collections") return Promise.resolve({ ok: true, data: [] });
+        if (cmd === "get_api_credential") return Promise.resolve({ ok: true, data: { exists: false, maskedKey: null, label: null } });
+        if (cmd === "list_chat_conversations") return Promise.resolve({ ok: true, data: [{ ...defaultConversationRow }] });
+        if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
+        if (cmd === "list_custom_models") return Promise.resolve({ ok: true, data: [{ name: "custom/model-a", title: "Custom A", provider: "custom" }] });
+        if (cmd === "add_custom_model") return Promise.resolve({ ok: true, data: null });
+        if (cmd === "delete_custom_model") return Promise.resolve({ ok: true, data: { ok: true } });
+        return Promise.resolve({ ok: true, data: null });
+      });
+      renderChatPage();
+      const selector = await screen.findByTestId("model-selector");
+      await userEvent.setup().click(selector);
+      expect((await screen.findAllByText("Custom A")).length).toBeGreaterThan(0);
+    });
+
+    it("renders model-selector dropdown", async () => {
+      renderChatPage();
+      expect(await screen.findByTestId("model-selector")).toBeInTheDocument();
+    });
+
+    it("shows list_custom_models error as empty state (no crash)", async () => {
+      mockInvoke.mockImplementation((cmd: string, _args?: InvokeArgs) => {
+        if (cmd === "list_custom_models") return Promise.resolve({ ok: false, code: "UNEXPECTED_ERROR", message: "DB error" });
+        if (cmd === "list_collections") return Promise.resolve({ ok: true, data: [] });
+        if (cmd === "get_api_credential") return Promise.resolve({ ok: true, data: { exists: false, maskedKey: null, label: null } });
+        if (cmd === "list_chat_conversations") return Promise.resolve({ ok: true, data: [{ ...defaultConversationRow }] });
+        if (cmd === "get_chat_messages") return Promise.resolve({ ok: true, data: [] });
+        return Promise.resolve({ ok: true, data: null });
+      });
+      renderChatPage();
+      // Page should render without crashing even when list_custom_models fails
+      expect(await screen.findByTestId("model-selector")).toBeInTheDocument();
+    });
+  });
+
   describe("T043 - Setup guidance when not configured", () => {
     it("blocks sending when neither API key nor model selected", async () => {
       useStore.setState({ apiKeyExists: false });
@@ -254,7 +295,7 @@ describe("ChatPage", () => {
 
       await screen.findByTestId("model-selector");
       await user.click(screen.getByTestId("model-selector"));
-      await user.click(await screen.findByText("GPT-4o"));
+      await user.click(await screen.findByText("GPT-4o", { selector: ':not([role="alert"])' }));
 
       await waitFor(() => {
         expect(screen.getByTestId("composer-send")).not.toBeDisabled();

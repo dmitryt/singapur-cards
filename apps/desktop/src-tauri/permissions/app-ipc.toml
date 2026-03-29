@@ -32,4 +32,7 @@ commands.allow = [
   "save_api_credential",
   "get_api_credential",
   "delete_api_credential",
+  "list_custom_models",
+  "add_custom_model",
+  "delete_custom_model",
 ]
