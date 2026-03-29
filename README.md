@@ -11,7 +11,8 @@ Singapur Cards lets you turn any ABBYY Lingvo `.dsl` dictionary into a personal 
 - 🃏 **Flashcard creation** — save any dictionary entry as a study card
 - 🗂️ **Collections** — organize cards into named collections for focused study
 - 🔁 **Review sessions** — mark cards as learned or not, with persisted progress
-- ✈️ **Fully offline** — all data stays local in SQLite; no account or network needed
+- 🤖 **AI Assistant** — built-in chat assistant to help you learn; connects to [OpenRouter](https://openrouter.ai) for access to a wide range of AI models
+- ✈️ **Fully offline** — all data stays local in SQLite; no account or network needed (except for AI features)
 
 ## 📦 Apps
 
@@ -26,7 +27,7 @@ Singapur Cards lets you turn any ABBYY Lingvo `.dsl` dictionary into a personal 
 - **UI:** Semantic UI React + styled-components
 - **State:** Zustand
 - **Database:** SQLite (rusqlite + Tauri SQL plugin)
-- **AI:** @assistant-ui/react with configurable model backends
+- **AI:** @assistant-ui/react + OpenRouter (configurable model backends)
 - **Testing:** Vitest + Rust unit/integration tests
 
 ## 🚀 Getting Started
