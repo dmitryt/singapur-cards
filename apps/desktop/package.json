@@ -13,7 +13,9 @@
     "test:coverage": "vitest run --coverage",
     "seed:dev": "cargo run --example seed_dev_db --manifest-path src-tauri/Cargo.toml",
     "seed:dev:custom": "cargo run --example seed_dev_db --manifest-path src-tauri/Cargo.toml --",
-    "bench:search": "cargo run --example bench_search --release --manifest-path src-tauri/Cargo.toml"
+    "bench:search": "cargo run --example bench_search --release --manifest-path src-tauri/Cargo.toml",
+    "build:macos": "tauri build --bundles dmg",
+    "build:windows": "tauri build --bundles dmg"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.12.21",

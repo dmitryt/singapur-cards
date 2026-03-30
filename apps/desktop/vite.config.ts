@@ -9,6 +9,8 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [react()],
   build: {
+    // Desktop (Tauri): one main JS chunk is expected; default 500 kB limit warned on 500.13 kB.
+    chunkSizeWarningLimit: 900,
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
