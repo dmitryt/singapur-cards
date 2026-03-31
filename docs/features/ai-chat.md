@@ -11,8 +11,8 @@
   - Apply selected collection context and model on each request.
   - Surface token usage where provided.
 - Non-Goals:
-  - Managing custom model catalog (covered in `models.md`).
-  - Managing API key lifecycle (covered in `user-profile.md`).
+  - Managing custom model catalog (covered in [Models](./models.md)).
+  - Managing API key lifecycle (covered in [User Profile](./user-profile.md)).
 
 #### 3. User Stories
 - A learner sends prompts and receives assistant responses in thread order.

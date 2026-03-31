@@ -11,8 +11,8 @@
   - Keep model list deterministic and valid for chat selection.
   - Persist model choices across app restarts on device.
 - Non-Goals:
-  - Chat message delivery (covered in `ai-chat.md`).
-  - API key management (covered in `user-profile.md`).
+  - Chat message delivery (covered in [AI Chat](./ai-chat.md)).
+  - API key management (covered in [User Profile](./user-profile.md)).
 
 #### 3. User Stories
 - A learner adds a custom model with identifier and title.

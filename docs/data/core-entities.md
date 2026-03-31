@@ -81,4 +81,4 @@ type SavedModel = {
 - `HeadwordDetail` is a computed read model, not a base table.
 - Card uniqueness is scoped to `headword + language`.
 - AI credential metadata is stored in SQLite; raw key value is keychain-only.
-- Full desktop DDL, indexes, FTS, and trigger definitions are documented in `docs/data/sql-schemas.md`.
+- Full desktop DDL, indexes, FTS, and trigger definitions are documented in [SQL Schemas](./sql-schemas.md).

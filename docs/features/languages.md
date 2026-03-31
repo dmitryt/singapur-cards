@@ -3,7 +3,7 @@
 #### 1. Overview
 - Languages defines the managed list of learning/search languages in the app.
 - It owns language CRUD and validation rules.
-- Active language selection itself is handled by `user-profile.md`.
+- Active language selection itself is handled by [User Profile](./user-profile.md).
 
 #### 2. Goals & Non-Goals
 - Goals:
@@ -12,7 +12,7 @@
   - Ensure at least one language is always present.
 - Non-Goals:
   - Profile-level active language selection UX.
-  - Dictionary import/search behavior details (covered in `dictionaries.md`).
+  - Dictionary import/search behavior details (covered in [Dictionaries](./dictionaries.md)).
 
 #### 3. User Stories
 - A learner adds a language with code and title.

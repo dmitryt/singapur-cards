@@ -11,8 +11,8 @@
   - Support card editing and persistence.
   - Prevent duplicate cards for the same vocabulary target.
 - Non-Goals:
-  - Collection lifecycle management (covered in `collections.md`).
-  - Review-session ordering and progression logic (covered in `reviews.md`).
+  - Collection lifecycle management (covered in [Collections](./collections.md)).
+  - Review-session ordering and progression logic (covered in [Reviews](./reviews.md)).
 
 #### 3. User Stories
 - A learner saves a headword as a new card with prefilled answer data.
