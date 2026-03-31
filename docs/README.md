@@ -2,29 +2,22 @@
 
 ## Structure
 
-- `overview/` - product scope and documentation map
-- `features/` - one file per feature domain
-- `data/` - shared entities and TypeScript-oriented data contracts
-- `flows/` - core end-to-end user/system flows
-- `architecture/` - frontend/Tauri/storage/provider boundaries
-- `platforms/` - platform-specific notes and current parity status
-
-## Quick Links
-
-- `overview/project-overview.md`
-- `architecture/system-architecture.md`
-- `data/core-entities.md`
-- `data/sql-schemas.md`
-- `flows/core-flows.md`
-- `features/cards.md`
-- `features/collections.md`
-- `features/reviews.md`
-- `features/dictionaries.md`
-- `features/languages.md`
-- `features/user-profile.md`
-- `features/models.md`
-- `features/ai-chat.md`
-- `platforms/desktop-vs-mobile.md`
+- [`Project Overview`](./overview/) - product scope and documentation map
+- **`Features`** - one file per feature domain
+  - [`Cards`](./features/cards.md)
+  - [`Collections`](./features/collections.md)
+  - [`Reviews`](./features/reviews.md)
+  - [`Dictionaries`](./features/dictionaries.md)
+  - [`Languages`](./features/languages.md)
+  - [`User Profile`](./features/user-profile.md)
+  - [`Models`](./features/models.md)
+  - [`AI Chat`](./features/ai-chat.md)
+- **`Data Structure`** - shared entities and TypeScript-oriented data contracts
+  - [`Core Entities`](./data/core-entities.md)
+  - [`SQL Schemas`](./data/sql-schemas.md)
+- [`Flows`](./flows/) - core end-to-end user/system flows
+- [`Architecture`](./architecture/) - frontend/Tauri/storage/provider boundaries
+- [`Platform`](./platforms/) - platform-specific notes and current parity status
 
 ## Scope
 
