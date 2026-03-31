@@ -30,6 +30,10 @@ Singapur Cards lets you turn any ABBYY Lingvo `.dsl` dictionary into a personal 
 - **AI:** @assistant-ui/react + OpenRouter (configurable model backends)
 - **Testing:** Vitest + Rust unit/integration tests
 
+## 📚 Documentation
+
+- [Developer Documentation](./docs/README.md)
+
 ## 🚀 Getting Started
 
 See the [Desktop app README](./apps/desktop/README.md) for setup instructions.
