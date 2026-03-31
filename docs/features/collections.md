@@ -11,8 +11,8 @@
   - Support stable card membership management.
   - Keep card records intact when a collection is removed.
 - Non-Goals:
-  - Review run-time sequencing (covered in `reviews.md`).
-  - Card field editing (covered in `cards.md`).
+  - Review run-time sequencing (covered in [Reviews](./reviews.md)).
+  - Card field editing (covered in [Cards](./cards.md)).
 
 #### 3. User Stories
 - A learner creates topical collections and assigns cards.

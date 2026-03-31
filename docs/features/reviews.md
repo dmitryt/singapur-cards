@@ -12,7 +12,7 @@
   - Persist review progress locally.
 - Non-Goals:
   - Spaced repetition scheduling algorithms.
-  - Card content editing (covered in `cards.md`).
+  - Card content editing (covered in [Cards](./cards.md)).
 
 #### 3. User Stories
 - A learner starts a review run and flips cards front/back.

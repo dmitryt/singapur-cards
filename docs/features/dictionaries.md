@@ -11,7 +11,7 @@
   - Fast exact/prefix headword search scoped by active language.
   - Aggregated detail view across contributing entries/dictionaries.
 - Non-Goals:
-  - Card persistence lifecycle (covered in `cards.md`).
+  - Card persistence lifecycle (covered in [Cards](./cards.md)).
   - Advanced fuzzy search in MVP.
 
 #### 3. User Stories

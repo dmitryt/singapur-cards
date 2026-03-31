@@ -12,7 +12,7 @@
   - Keep profile actions lightweight and recoverable.
 - Non-Goals:
   - Language create/edit/delete flows.
-  - Chat message sending logic (covered in `ai-chat.md`).
+  - Chat message sending logic (covered in [AI Chat](./ai-chat.md)).
 
 #### 3. User Stories
 - A learner sets active language from available options.
