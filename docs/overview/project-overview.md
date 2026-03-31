@@ -20,15 +20,19 @@ Singapur Cards is an offline-first vocabulary learning app that imports ABBYY Li
 
 ## Feature Domains
 
-- Desktop Vocabulary Learning MVP
-- Language and Dictionary Management + Search Overhaul
-- AI Chat for Vocabulary Practice
-- Custom AI Models
+- [Cards](../features/cards.md)
+- [Collections](../features/collections.md)
+- [Reviews](../features/reviews.md)
+- [Dictionaries](../features/dictionaries.md)
+- [Languages](../features/languages.md)
+- [User Profile](../features/user-profile.md)
+- [Models](../features/models.md)
+- [AI Chat](../features/ai-chat.md)
 
 ## Reading Order
 
-1. `architecture/system-architecture.md`
-2. `data/core-entities.md`
-3. `flows/core-flows.md`
-4. `features/*.md`
-5. `platforms/desktop-vs-mobile.md`
+1. [Architecture](../architecture/system-architecture.md)
+2. [Core Entities](../data/core-entities.md)
+3. [Flows](../flows/core-flows.md)
+4. [Features](../features/)
+5. [Platforms](../platforms/desktop-vs-mobile.md)
