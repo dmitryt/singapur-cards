@@ -2,7 +2,7 @@
 
 ## Structure
 
-- [`Project Overview`](./overview/) - product scope and documentation map
+- [`Project Overview`](./overview/project-overview.md) - product scope and documentation map
 - **`Features`** - one file per feature domain
   - [`Cards`](./features/cards.md)
   - [`Collections`](./features/collections.md)
@@ -15,9 +15,9 @@
 - **`Data Structure`** - shared entities and TypeScript-oriented data contracts
   - [`Core Entities`](./data/core-entities.md)
   - [`SQL Schemas`](./data/sql-schemas.md)
-- [`Flows`](./flows/) - core end-to-end user/system flows
-- [`Architecture`](./architecture/) - frontend/Tauri/storage/provider boundaries
-- [`Platform`](./platforms/) - platform-specific notes and current parity status
+- [`Flows`](./flows/core-flows.md) - core end-to-end user/system flows
+- [`Architecture`](./architecture/system-architecture.md) - frontend/Tauri/storage/provider boundaries
+- [`Platforms`](./platforms/desktop-vs-mobile.md) - platform-specific notes and current parity status
 
 ## Scope
 
