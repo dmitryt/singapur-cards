@@ -244,7 +244,7 @@ describe("ChatPage", () => {
 
   describe("Custom models (004)", () => {
     it("model selector lists custom models after built-ins", async () => {
-      mockInvoke.mockImplementation((cmd: string, args?: InvokeArgs) => {
+      mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === "list_collections") return Promise.resolve({ ok: true, data: [] });
         if (cmd === "get_api_credential") return Promise.resolve({ ok: true, data: { exists: false, maskedKey: null, label: null } });
         if (cmd === "list_chat_conversations") return Promise.resolve({ ok: true, data: [{ ...defaultConversationRow }] });

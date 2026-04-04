@@ -13,7 +13,7 @@ Build a desktop-first, offline vocabulary learning application with Tauri v2. Us
 **Primary Dependencies**: Tauri v2, React, Zustand, styled-components, Semantic UI React, `@tauri-apps/plugin-sql` with SQLite support; CSS provided by `fomantic-ui-css` (the actively maintained community fork of Semantic UI CSS, compatible with `semantic-ui-react`)
 **Storage**: SQLite for application data; imports read a user-selected DSL file once and persist normalized dictionary content plus source metadata locally
 **Testing**: Rust unit tests for parser, migrations, and search services; Vitest + React Testing Library for UI and store behavior; documented manual smoke checks for startup, import, offline use, and persistence
-**Target Platform**: Desktop application for macOS, Windows, and Linux
+**Target Platform**: Desktop application for macOS and Windows (Linux not in current support scope)
 **Project Type**: Desktop app
 **Performance Goals**: 95% of searches return results or an explicit no-results state within 1 second; review interactions feel immediate; importing large dictionaries does not freeze the UI thread
 **Constraints**: Fully offline for MVP flows, local-data-safe, keyboard and mouse friendly, able to handle multiple dictionaries up to 200,000 entries each, minimal background processing, no cloud dependency

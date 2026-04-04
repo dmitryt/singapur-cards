@@ -13,7 +13,7 @@ Add an online AI chat flow to the desktop app where users can send prompts, pick
 **Primary Dependencies**: `react`, `zustand`, `@assistant-ui/react`, `@tauri-apps/api`, `semantic-ui-react`, `styled-components`, `tauri`, `serde`, `reqwest` or equivalent Rust HTTP client for provider calls  
 **Storage**: Local application state; optional persisted chat history is out of scope for v1  
 **Testing**: Vitest + Testing Library for UI/state; Rust unit/integration tests for command behavior  
-**Target Platform**: Desktop via Tauri (macOS/Windows/Linux target set by project)  
+**Target Platform**: Desktop via Tauri (macOS and Windows currently supported)  
 **Project Type**: Desktop application (React UI + Rust command layer)  
 **Performance Goals**: 95% of successful prompts return a visible response within 10 seconds under normal network conditions  
 **Constraints**: No app-provided fallback credential in v1; chat requests require a saved user OpenRouter key; no raw key pass-through in chat requests; recoverable failure states; keep app usable on network errors  

@@ -18,8 +18,12 @@ Singapur Cards lets you turn any ABBYY Lingvo `.dsl` dictionary into a personal 
 
 | App | Description |
 |-----|-------------|
-| [🖥️ Desktop](./apps/desktop) | Native desktop client built with Tauri v2, React, and SQLite |
-| 📱 Mobile | Native mobile client — _in progress_ |
+| [🖥️ Desktop](./apps/desktop) | Native desktop client built with Tauri v2, React, and SQLite (currently supported on macOS and Windows only) |
+
+## 🎯 Platform Support
+
+- Supported now: **Desktop on macOS and Windows**
+- Not supported now: Linux desktop builds, iOS, and Android
 
 ## 🛠️ Tech Stack
 

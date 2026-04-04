@@ -2,6 +2,8 @@
 
 Offline-first desktop vocabulary learning app built with Tauri v2, React, and SQLite.
 
+> Current platform support: **macOS and Windows desktop only**.
+
 Singapur Cards helps you:
 - import ABBYY Lingvo DSL dictionaries from local files
 - search headwords quickly (exact + prefix)
@@ -37,7 +39,7 @@ Singapur Cards helps you:
 Before running the app, install:
 - Node.js LTS
 - Rust toolchain (`rustup`, `cargo`)
-- Tauri v2 system prerequisites for your OS
+- Tauri v2 system prerequisites for your OS (macOS or Windows)
 
 Reference: [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/)
 

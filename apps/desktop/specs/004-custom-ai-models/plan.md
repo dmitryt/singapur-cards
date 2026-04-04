@@ -15,7 +15,7 @@ Deliver **device-local custom chat models** in the Singapur Cards desktop app: u
 **Primary Dependencies**: Tauri 2, Vite 6, Semantic UI React 2.1, styled-components 6, @assistant-ui/react, react-router-dom 6, zustand
 **Storage**: SQLite via existing `rusqlite` connection in `AppState`; new `custom_chat_models` table added via migration in `schema.rs`; no new Rust or npm dependencies
 **Testing**: Vitest 4 + Testing Library (`npm test` in `apps/desktop`)
-**Target Platform**: Tauri v2 desktop (macOS primary per team usage)
+**Target Platform**: Tauri v2 desktop (macOS and Windows currently supported; macOS primary per team usage)
 **Project Type**: desktop-app (web UI + Tauri shell)
 **Performance Goals**: Model list load/build < 100ms on typical machines for hundreds of entries (informal); no blocking main thread on persist
 **Constraints**: Offline-capable chat UI; local data in app-owned SQLite DB; graceful degradation if Tauri command fails (per spec edge cases)
