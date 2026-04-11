@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(openspec instructions:*)",
-      "Bash(openspec status:*)"
+      "Bash(openspec status:*)",
+      "Bash(npm install:*)",
+      "Bash(npx expo:*)",
+      "Bash(npx tsc:*)",
+      "Bash(xcrun simctl:*)"
     ]
   }
 }

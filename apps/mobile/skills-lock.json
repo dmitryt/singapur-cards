@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "atomic-design": {
+      "source": "dmitryt/skills",
+      "sourceType": "github",
+      "computedHash": "bac159a024bf2e3c49d7c1214eda54e8696e9bbdec73f6607b715c82252d31a6"
+    },
     "grill-me": {
       "source": "mattpocock/skills",
       "sourceType": "github",
