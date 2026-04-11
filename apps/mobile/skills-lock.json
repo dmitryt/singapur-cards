@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "atomic-design": {
+      "source": "dmitryt/skills",
+      "sourceType": "github",
+      "computedHash": "bac159a024bf2e3c49d7c1214eda54e8696e9bbdec73f6607b715c82252d31a6"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "784f0dbb7403b0f00324bce9a112f715342777a0daee7bbb7385f9c6f0a170ea"
+    },
+    "vercel-react-native-skills": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "41d24eafa7c3d82e270439808f7cfbc4d51aeb2d14f2809a2267c16275784d06"
+    }
+  }
+}
