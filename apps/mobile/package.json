@@ -6,9 +6,12 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "db:seed": "tsx scripts/seed-dev-db.ts",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "expo": "~54.0.33",
     "expo-constants": "~18.0.13",
     "expo-linking": "~8.0.11",
@@ -23,7 +26,14 @@
     "react-native-screens": "~4.16.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/react": "~19.1.0",
+    "babel-plugin-inline-import": "^3.0.0",
+    "babel-preset-expo": "~54.0.10",
+    "better-sqlite3": "^12.8.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.2"
   },
   "private": true

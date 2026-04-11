@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Slot } from 'expo-router';
-import db from '../src/db';
-import { runMigrations } from '../src/db/migrate';
+import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
+import { db } from '../src/db';
+import migrations from '../src/db/migrations/migrations';
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    runMigrations(db)
+    migrate(db, migrations)
       .then(() => setReady(true))
       .catch((err) => {
         // Surface migration failures clearly — do not silently continue.
