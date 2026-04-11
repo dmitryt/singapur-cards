@@ -1,13 +1,4 @@
-### Requirement: SQLite database is accessible via a singleton module
-The app SHALL expose a single `src/db/index.ts` module that opens the SQLite database once and exports the database instance. All other modules SHALL import the database from this module and MUST NOT import `expo-sqlite` directly.
-
-#### Scenario: Database module initializes successfully
-- **WHEN** the app starts and `src/db/index.ts` is imported
-- **THEN** the SQLite database file is created on-device and the exported instance is non-null
-
-#### Scenario: Multiple imports share one connection
-- **WHEN** two different modules import from `src/db/index.ts`
-- **THEN** both receive the same database instance (reference equality)
+## MODIFIED Requirements
 
 ### Requirement: Migration runner applies schema migrations on startup
 The app SHALL run Drizzle's migration runner on database initialization that tracks applied migrations in a `__drizzle_migrations` table and applies any pending SQL migration files in order. The migration set SHALL include at minimum the baseline migration (canonical schema tables).
