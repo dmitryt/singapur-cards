@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HeadwordSearchField } from './HeadwordSearchField';
+import { NavMenu } from './NavMenu';
 import { COLORS } from '../../theme';
 
 interface CardsHomeToolbarProps {
@@ -18,6 +19,7 @@ export function CardsHomeToolbar({
 }: CardsHomeToolbarProps) {
   return (
     <View style={styles.row}>
+      <NavMenu />
       <HeadwordSearchField value={searchQuery} onChangeText={onSearchChange} />
       <Pressable
         style={[styles.filterButton, collectionFilterActive && styles.filterButtonActive]}

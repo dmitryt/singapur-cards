@@ -3,15 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useCards } from '../hooks/useCards';
-import { AdvancedSearchModal } from '../components/molecules/AdvancedSearchModal';
-import { CardsHomeToolbar } from '../components/molecules/CardsHomeToolbar';
-import { CardList } from '../components/organisms/CardList';
-import { Button } from '../components/atoms/Button';
-import { COLORS } from '../theme';
-import { useActiveLanguageStore } from '../store/activeLanguageStore';
-import { useCardsListFilterStore } from '../store/cardsListFilterStore';
-import type { Card } from '../hooks/useCards';
+import { useCards } from '../../hooks/useCards';
+import { AdvancedSearchModal } from '../../components/molecules/AdvancedSearchModal';
+import { CardsHomeToolbar } from '../../components/molecules/CardsHomeToolbar';
+import { CardList } from '../../components/organisms/CardList';
+import { Button } from '../../components/atoms/Button';
+import { COLORS } from '../../theme';
+import { useActiveLanguageStore } from '../../store/activeLanguageStore';
+import { useCardsListFilterStore } from '../../store/cardsListFilterStore';
+import type { Card } from '../../hooks/useCards';
 
 export default function HomeScreen() {
   const router = useRouter();
