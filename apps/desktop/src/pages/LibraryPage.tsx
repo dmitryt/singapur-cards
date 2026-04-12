@@ -21,11 +21,6 @@ const CardGrid = styled.div`
   align-content: start;
 `;
 
-const statusBackground: Record<string, string> = {
-  learned: "#d4edda",
-  not_learned: "#f8d7da",
-  unreviewed: "#ffffff",
-};
 
 const flipIn = keyframes`
   from { transform: rotateY(90deg); opacity: 0; }
@@ -45,7 +40,7 @@ const CardTile = styled.div<{ status: string }>`
   position: relative;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  background: ${({ status }) => statusBackground[status] ?? "#ffffff"};
+  background: ${({ status, theme }) => theme.colors.learningStatus[status as keyof typeof theme.colors.learningStatus] ?? "#ffffff"};
   cursor: pointer;
   height: 160px;
   display: flex;
