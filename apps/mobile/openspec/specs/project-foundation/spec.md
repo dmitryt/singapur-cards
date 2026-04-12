@@ -14,7 +14,11 @@ The app SHALL use `expo-router` for navigation, with a root layout and at least 
 
 #### Scenario: Index screen renders
 - **WHEN** the app launches
-- **THEN** the root `app/index.tsx` screen is displayed without a crash
+- **THEN** the root `src/app/index.tsx` screen is displayed without a crash
+
+#### Scenario: Settings screen is routable
+- **WHEN** navigation targets the `src/app/settings.tsx` route (e.g. from the language chip inside the cards home advanced search sheet)
+- **THEN** the Settings screen renders without a crash and can return to the previous screen
 
 #### Scenario: Navigation shell is present
 - **WHEN** the app launches

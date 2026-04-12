@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Slot } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
-import { db } from '../src/db';
-import migrations from '../src/db/migrations/migrations';
+import { db } from '../db';
+import migrations from '../db/migrations/migrations';
+import { useActiveLanguageStore } from '../store/activeLanguageStore';
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     migrate(db, migrations)
+      .then(() => useActiveLanguageStore.getState().hydrate())
       .then(() => setReady(true))
       .catch((err) => {
         // Surface migration failures clearly — do not silently continue.
@@ -21,16 +24,20 @@ export default function RootLayout() {
   if (!ready) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator />
-        </View>
+        <SafeAreaProvider>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator />
+          </View>
+        </SafeAreaProvider>
       </GestureHandlerRootView>
     );
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Slot />
+      <SafeAreaProvider>
+        <Slot />
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

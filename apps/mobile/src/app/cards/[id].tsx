@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { eq } from 'drizzle-orm';
-import { db } from '../../src/db';
-import { cards } from '../../src/db/schema';
-import { Badge } from '../../src/components/atoms/Badge';
-import { Button } from '../../src/components/atoms/Button';
-import { STATUS_COLORS, STATUS_BADGE, COLORS } from '../../src/theme';
+import { db } from '../../db';
+import { cards } from '../../db/schema';
+import { Badge } from '../../components/atoms/Badge';
+import { Button } from '../../components/atoms/Button';
+import { STATUS_COLORS, STATUS_BADGE, COLORS } from '../../theme';
 
 type Card = typeof cards.$inferSelect;
 

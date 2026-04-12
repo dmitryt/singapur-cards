@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { eq, sql, asc, getTableColumns } from 'drizzle-orm';
+import { and, eq, sql, asc, getTableColumns } from 'drizzle-orm';
 import { db } from '../db';
 import { cards, collectionMemberships, reviewEvents } from '../db/schema';
 import type { Card } from './cardsStore';
@@ -22,7 +22,7 @@ type ReviewState = {
   isFlipped: boolean;
   loaded: boolean;
   recording: boolean;
-  load: (collectionId?: string | null) => Promise<void>;
+  load: (collectionId: string | null | undefined, language: string) => Promise<void>;
   flip: () => void;
   record: (result: ReviewResult) => Promise<void>;
 };
@@ -34,7 +34,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   loaded: false,
   recording: false,
 
-  load: async (collectionId = null) => {
+  load: async (collectionId = null, language: string) => {
     set({ loaded: false, currentIndex: 0, isFlipped: false });
     try {
       let result: Card[];
@@ -43,10 +43,19 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
           .select(getTableColumns(cards))
           .from(cards)
           .innerJoin(collectionMemberships, eq(collectionMemberships.cardId, cards.id))
-          .where(eq(collectionMemberships.collectionId, collectionId))
+          .where(
+            and(
+              eq(collectionMemberships.collectionId, collectionId),
+              eq(cards.language, language)
+            )
+          )
           .orderBy(asc(statusOrder));
       } else {
-        result = await db.select().from(cards).orderBy(asc(statusOrder));
+        result = await db
+          .select()
+          .from(cards)
+          .where(eq(cards.language, language))
+          .orderBy(asc(statusOrder));
       }
       set({ deck: result, loaded: true });
     } catch {

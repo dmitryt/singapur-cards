@@ -6,13 +6,19 @@ import type { Card } from '../../hooks/useCards';
 interface CardListProps {
   cards: Card[];
   onCardPress: (card: Card) => void;
+  /** Shown when `cards` is empty (e.g. no matches vs no data). */
+  emptyMessage?: string;
 }
 
-export function CardList({ cards, onCardPress }: CardListProps) {
+export function CardList({
+  cards,
+  onCardPress,
+  emptyMessage = 'No cards to show',
+}: CardListProps) {
   if (cards.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyText}>No cards to show</Text>
+        <Text style={styles.emptyText}>{emptyMessage}</Text>
       </View>
     );
   }

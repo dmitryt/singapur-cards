@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 import {
   Modal,
   Pressable,
@@ -19,9 +20,17 @@ interface SelectProps<T extends string> {
   value: T | null;
   onChange: (value: T | null) => void;
   placeholder?: string;
+  /** Merged into the trigger `Pressable` (e.g. maxWidth for compact toolbars). */
+  triggerStyle?: StyleProp<ViewStyle>;
 }
 
-export function Select<T extends string>({ options, value, onChange, placeholder = 'All' }: SelectProps<T>) {
+export function Select<T extends string>({
+  options,
+  value,
+  onChange,
+  placeholder = 'All',
+  triggerStyle,
+}: SelectProps<T>) {
   const [open, setOpen] = useState(false);
   const selected = options.find(o => o.value === value);
   const label = selected?.label ?? placeholder;
@@ -33,7 +42,7 @@ export function Select<T extends string>({ options, value, onChange, placeholder
 
   return (
     <>
-      <Pressable style={styles.trigger} onPress={() => setOpen(true)}>
+      <Pressable style={[styles.trigger, triggerStyle]} onPress={() => setOpen(true)}>
         <Text style={styles.triggerText} numberOfLines={1}>{label}</Text>
         <Text style={styles.caret}>▾</Text>
       </Pressable>

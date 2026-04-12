@@ -1,14 +1,17 @@
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useReviewSession } from '../src/hooks/useReviewSession';
-import { ReviewCard } from '../src/components/organisms/ReviewCard';
-import { Button } from '../src/components/atoms/Button';
-import { COLORS } from '../src/theme';
+import { useReviewSession } from '../hooks/useReviewSession';
+import { useActiveLanguageStore } from '../store/activeLanguageStore';
+import { ReviewCard } from '../components/organisms/ReviewCard';
+import { Button } from '../components/atoms/Button';
+import { COLORS } from '../theme';
 
 export default function ReviewScreen() {
   const { collectionId } = useLocalSearchParams<{ collectionId?: string }>();
   const router = useRouter();
-  const session = useReviewSession(collectionId || null);
+  const activeLanguage = useActiveLanguageStore((s) => s.language);
+  const session = useReviewSession(collectionId || null, activeLanguage);
 
   if (!session.loaded) {
     return (
