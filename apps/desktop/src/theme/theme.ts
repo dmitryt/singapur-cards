@@ -13,6 +13,11 @@ export const theme = {
     error: "#db2828",
     info: "#2185d0",
 
+    learningStatus: {
+      learned: "#d4edda",
+      not_learned: "#f8d7da",
+      unreviewed: "#ffffff",
+    },
     dsl: {
       example: "#999",
       color: "green",
