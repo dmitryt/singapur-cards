@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useCards } from '../hooks/useCards';
 import { AdvancedSearchModal } from '../components/molecules/AdvancedSearchModal';
 import { CardsHomeToolbar } from '../components/molecules/CardsHomeToolbar';
@@ -22,8 +23,8 @@ export default function HomeScreen() {
 
   const visibleCards = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return cards;
-    return cards.filter((c) => c.headword.toLowerCase().startsWith(q));
+    const filtered = q ? cards.filter((c) => c.headword.toLowerCase().startsWith(q)) : cards;
+    return [...filtered].sort((a, b) => a.headword.localeCompare(b.headword));
   }, [cards, searchQuery]);
 
   const emptyMessage = useMemo(() => {
@@ -61,7 +62,8 @@ export default function HomeScreen() {
       </View>
       <View style={styles.footer}>
         <Button
-          label="Start Review"
+          label="Practice"
+          icon={<Ionicons name="school" size={18} color="#fff" />}
           onPress={handleStartReview}
           disabled={visibleCards.length === 0}
         />

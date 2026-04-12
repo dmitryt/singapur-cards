@@ -54,12 +54,50 @@ The app SHALL expose a `settings` route where the user can change the active lea
 - **WHEN** the user opens advanced search from the cards home and taps the language chip in the sheet
 - **THEN** the Settings screen is shown and Back returns to the cards home
 
-### Requirement: Cards home footer shows centered review entry
-The cards home footer SHALL present a single primary action to start review, horizontally centered. There SHALL be no separate Settings link in the footer.
+### Requirement: Cards home footer shows centered practice entry
+The cards home footer SHALL present a single primary action labelled **”Practice”** with an education icon (school), horizontally centered. There SHALL be no separate Settings link in the footer.
 
-#### Scenario: Start Review is centered
+#### Scenario: Practice button is centered
 - **WHEN** the cards home footer is visible
-- **THEN** the “Start Review” control is centered in the footer area
+- **THEN** the “Practice” button with a school icon is centered in the footer area
+
+#### Scenario: Practice button is disabled when no cards are visible
+- **WHEN** the visible card list is empty (due to filters or search)
+- **THEN** the Practice button is in a disabled state and cannot be pressed
+
+### Requirement: Card list displays in a two-column grid sorted alphabetically
+The card list SHALL render as a two-column grid. Cards SHALL be sorted alphabetically by `headword` (locale-aware ascending) at all times, including when search or collection/language filters are active.
+
+#### Scenario: Cards render in two columns
+- **WHEN** the card list has one or more cards
+- **THEN** cards are arranged in a two-column grid with equal-width columns and consistent spacing
+
+#### Scenario: Cards are sorted alphabetically
+- **WHEN** the card list is rendered (filtered or unfiltered)
+- **THEN** cards appear in ascending alphabetical order by headword
+
+### Requirement: Card item shows headword, answer text, status indicator, and audio affordance
+Each card item SHALL display: a **colored left status bar** (green for `learned`, red for `not_learned`, transparent for `unreviewed`), the card **headword** in bold, the card **answerText** as secondary text below the headword, and a circular **audio button** (volume icon) in the bottom-left of the card. The card SHALL NOT show a language badge or a text status badge — learning status is conveyed solely by the left bar color.
+
+#### Scenario: Learned card shows green left bar
+- **WHEN** a card has `learningStatus = 'learned'`
+- **THEN** its left status bar is green and no text status badge is displayed
+
+#### Scenario: Not-learned card shows red left bar
+- **WHEN** a card has `learningStatus = 'not_learned'`
+- **THEN** its left status bar is red and no text status badge is displayed
+
+#### Scenario: Unreviewed card has no left bar color
+- **WHEN** a card has `learningStatus = 'unreviewed'`
+- **THEN** its left status bar is transparent (no color shown)
+
+#### Scenario: Card shows answer text
+- **WHEN** a card item is rendered
+- **THEN** the card's `answerText` is visible below the headword
+
+#### Scenario: Audio affordance is present
+- **WHEN** a card item is rendered
+- **THEN** a circular button with a volume icon is shown in the actions row of the card
 
 ### Requirement: Toolbar layout constraints on small screens
 The headword search field SHALL use flexible width with a minimum width near 112 dp. The filter icon SHALL remain a compact fixed-width touch target so the row stays usable on narrow devices.

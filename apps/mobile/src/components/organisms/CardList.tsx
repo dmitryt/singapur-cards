@@ -6,7 +6,6 @@ import type { Card } from '../../hooks/useCards';
 interface CardListProps {
   cards: Card[];
   onCardPress: (card: Card) => void;
-  /** Shown when `cards` is empty (e.g. no matches vs no data). */
   emptyMessage?: string;
 }
 
@@ -27,6 +26,10 @@ export function CardList({
     <FlatList
       data={cards}
       keyExtractor={item => item.id}
+      numColumns={2}
+      style={styles.list}
+      contentContainerStyle={styles.content}
+      columnWrapperStyle={styles.row}
       renderItem={({ item }) => (
         <CardListItem card={item} onPress={() => onCardPress(item)} />
       )}
@@ -35,6 +38,16 @@ export function CardList({
 }
 
 const styles = StyleSheet.create({
+  list: {
+    flex: 1,
+  },
+  content: {
+    padding: 10,
+    gap: 10,
+  },
+  row: {
+    gap: 10,
+  },
   empty: {
     flex: 1,
     alignItems: 'center',

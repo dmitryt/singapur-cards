@@ -1,6 +1,13 @@
-import { Pressable, Text, StyleSheet } from 'react-native';
-import { STATUS_COLORS, COLORS } from '../../theme';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../../theme';
 import type { Card } from '../../hooks/useCards';
+
+const STATUS_BORDER: Record<string, string> = {
+  learned:     '#21ba45',
+  not_learned: '#db2828',
+  unreviewed:  'transparent',
+};
 
 interface CardListItemProps {
   card: Card;
@@ -8,29 +15,65 @@ interface CardListItemProps {
 }
 
 export function CardListItem({ card, onPress }: CardListItemProps) {
-  const bgColor = STATUS_COLORS[card.learningStatus as keyof typeof STATUS_COLORS] ?? STATUS_COLORS.unreviewed;
+  const borderColor = STATUS_BORDER[card.learningStatus] ?? 'transparent';
 
   return (
-    <Pressable style={[styles.container, { backgroundColor: bgColor }]} onPress={onPress}>
-      <Text style={styles.headword} numberOfLines={1}>{card.headword}</Text>
+    <Pressable style={styles.card} onPress={onPress}>
+      <View style={[styles.statusBar, { backgroundColor: borderColor }]} />
+      <View style={styles.body}>
+        <Text style={styles.headword} numberOfLines={2}>{card.headword}</Text>
+        <Text style={styles.answer} numberOfLines={2}>{card.answerText}</Text>
+        <View style={styles.actions}>
+          <View style={styles.audioBtn}>
+            <Ionicons name="volume-medium" size={14} color={COLORS.textSecondary} />
+          </View>
+        </View>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    minHeight: 56,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border,
+  card: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    minHeight: 120,
+  },
+  statusBar: {
+    width: 4,
+  },
+  body: {
+    flex: 1,
+    padding: 12,
     justifyContent: 'space-between',
   },
   headword: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '700',
     color: COLORS.text,
-    fontWeight: '500',
+    marginBottom: 4,
+  },
+  answer: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    flex: 1,
+  },
+  actions: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
+  audioBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
