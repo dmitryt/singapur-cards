@@ -80,6 +80,16 @@ export function FlipCard({
     ]).start();
   };
 
+  const flyOff = (direction: 'learned' | 'not_learned') => {
+    const targetX = direction === 'learned' ? screenWidth * 1.5 : -screenWidth * 1.5;
+    Animated.parallel([
+      Animated.timing(dragX, { toValue: targetX, useNativeDriver: true, duration: 300 }),
+      Animated.timing(dragY, { toValue: 0, useNativeDriver: true, duration: 300 }),
+    ]).start(() => {
+      onResult?.(direction);
+    });
+  };
+
   const onHandlerStateChange = ({ nativeEvent }: any) => {
     if (
       nativeEvent.state === State.CANCELLED ||
@@ -98,12 +108,13 @@ export function FlipCard({
     if (dist < 10) {
       // Tap — toggle flip on either face
       onFlip?.();
+      snapBack();
     } else if (isFlippedRef.current && !recordingRef.current && Math.abs(tx) >= THRESHOLD) {
-      // Swipe past threshold on back face — commit result
-      onResult?.(tx > 0 ? 'learned' : 'not_learned');
+      // Swipe past threshold on back face — fly off then commit result
+      flyOff(tx > 0 ? 'learned' : 'not_learned');
+    } else {
+      snapBack();
     }
-
-    snapBack();
   };
 
   return (

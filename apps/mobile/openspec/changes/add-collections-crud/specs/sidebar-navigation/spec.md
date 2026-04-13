@@ -33,6 +33,17 @@ The app SHALL provide tappable items in the drawer for navigating between the Ca
 - **WHEN** the user opens the drawer and taps the Collections item
 - **THEN** the drawer closes and the app navigates to the Collections list screen
 
+### Requirement: Navigation drawer includes a Settings entry
+The app SHALL provide a Settings item in the navigation drawer that navigates to the Settings screen.
+
+#### Scenario: Tapping the Settings item navigates to the Settings screen
+- **WHEN** the user opens the drawer and taps the Settings item
+- **THEN** the drawer closes and the app navigates to the Settings screen
+
+#### Scenario: Settings item is active when on the Settings screen
+- **WHEN** the user opens the drawer while on the Settings screen
+- **THEN** the Settings item appears highlighted
+
 ### Requirement: Active section is visually distinguished in the drawer
 The app SHALL visually distinguish the item corresponding to the currently active top-level section.
 

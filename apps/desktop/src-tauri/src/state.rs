@@ -4,13 +4,17 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use crate::db::schema::run_migrations;
+use crate::sync::server::SharedSyncState;
 
 pub struct DbPool {
-    pub conn: Mutex<Connection>,
+    pub conn: Arc<Mutex<Connection>>,
 }
 
 /// Per in-flight chat stream; `true` requests cooperative cancellation (stop reading SSE, do not persist).
 pub type ChatStreamCancelMap = Mutex<HashMap<String, Arc<AtomicBool>>>;
+
+/// Wraps the optional sync server state so Tauri can manage it.
+pub struct SyncHandle(pub Option<SharedSyncState>);
 
 pub struct AppState {
     pub db: DbPool,
@@ -30,7 +34,7 @@ impl AppState {
 
         Ok(AppState {
             db: DbPool {
-                conn: Mutex::new(conn),
+                conn: Arc::new(Mutex::new(conn)),
             },
             chat_stream_cancels: Mutex::new(HashMap::new()),
         })
@@ -38,3 +42,4 @@ impl AppState {
 }
 
 pub type AppStateRef<'a> = tauri::State<'a, AppState>;
+pub type SyncHandleRef<'a> = tauri::State<'a, SyncHandle>;

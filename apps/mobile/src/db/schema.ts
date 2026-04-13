@@ -139,3 +139,73 @@ export const customChatModels = sqliteTable('custom_chat_models', {
   provider:  text('provider').notNull(),
   createdAt: text('created_at').notNull(),
 });
+
+// ---------------------------------------------------------------------------
+// Sync metadata tables
+// ---------------------------------------------------------------------------
+
+/** Known local and remote device identities. Non-secret peer metadata only.
+ *  Long-lived credentials are stored in expo-secure-store keyed by device id. */
+export const syncDevices = sqliteTable('sync_devices', {
+  id:          text('id').primaryKey().notNull(), // UUID device identifier
+  displayName: text('display_name').notNull(),
+  host:        text('host'),                      // null for the local device
+  port:        integer('port'),                   // null for the local device
+  isLocal:     integer('is_local', { mode: 'boolean' }).notNull().default(false),
+  pairedAt:    text('paired_at'),
+  lastSyncAt:  text('last_sync_at'),
+  createdAt:   text('created_at').notNull(),
+});
+
+/** Local mutation log for rows that participate in sync v1.
+ *  Covers INSERT and UPDATE operations. DELETEs go to sync_tombstones.
+ *  Populated by SQLite triggers on synced domain tables. */
+export const syncChanges = sqliteTable('sync_changes', {
+  id:           text('id').primaryKey().notNull(),
+  deviceId:     text('device_id').notNull(),
+  tableName:    text('table_name').notNull(),
+  rowId:        text('row_id').notNull(),
+  opType:       text('op_type', { enum: ['insert', 'update'] }).notNull(),
+  logicalClock: integer('logical_clock').notNull(),
+  payloadJson:  text('payload_json').notNull(),
+  requestId:    text('request_id'),    // set when received from a peer
+  appliedAt:    text('applied_at'),    // null = unacknowledged local change
+  createdAt:    text('created_at').notNull(),
+}, (table) => [
+  index('idx_sync_changes_device_clock').on(table.deviceId, table.logicalClock),
+  index('idx_sync_changes_table_row').on(table.tableName, table.rowId),
+  index('idx_sync_changes_applied_at').on(table.appliedAt),
+]);
+
+/** Delete records for rows that must remain deleted across peers. */
+export const syncTombstones = sqliteTable('sync_tombstones', {
+  id:           text('id').primaryKey().notNull(),
+  deviceId:     text('device_id').notNull(),
+  tableName:    text('table_name').notNull(),
+  rowId:        text('row_id').notNull(),
+  logicalClock: integer('logical_clock').notNull(),
+  requestId:    text('request_id'),
+  deletedAt:    text('deleted_at').notNull(),
+}, (table) => [
+  index('idx_sync_tombstones_device_clock').on(table.deviceId, table.logicalClock),
+  index('idx_sync_tombstones_table_row').on(table.tableName, table.rowId),
+]);
+
+/** Last acknowledged cursor per peer device, per direction. */
+export const syncCursors = sqliteTable('sync_cursors', {
+  peerDeviceId:                   text('peer_device_id').primaryKey().notNull(),
+  lastRemoteLogicalClock:         integer('last_remote_logical_clock').notNull().default(0),
+  lastAcknowledgedLocalLogicalClock: integer('last_acknowledged_local_logical_clock').notNull().default(0),
+  updatedAt:                      text('updated_at').notNull(),
+});
+
+/** Singleton row tracking current pairing state and last sync result. */
+export const syncState = sqliteTable('sync_state', {
+  id:               text('id').primaryKey().notNull().default('local'),
+  pairedDesktopId:  text('paired_desktop_id'), // references syncDevices.id
+  lastSyncAt:       text('last_sync_at'),
+  lastSyncResult:   text('last_sync_result', { enum: ['success', 'failure'] }),
+  lastSyncError:    text('last_sync_error'),
+  lastRequestId:    text('last_request_id'),
+  updatedAt:        text('updated_at').notNull(),
+});
