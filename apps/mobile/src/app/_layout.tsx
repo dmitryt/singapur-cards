@@ -15,7 +15,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     migrate(db, migrations)
-      .then(() => applySyncTriggers(expoDb))
+      .then(() => {
+        if (__DEV__) {
+          console.log('[SQLite] database file:', expoDb.databasePath);
+                  }
+        return applySyncTriggers(expoDb);
+      })
       .then(() => useSyncStore.getState().hydrate())
       .then(() => useActiveLanguageStore.getState().hydrate())
       .then(() => setReady(true))

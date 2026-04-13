@@ -29,19 +29,19 @@ pub fn run() {
             // Ensure a local device identity exists in sync_devices
             let local_device_id = {
                 let conn = shared_conn.lock().expect("DB lock");
-                ensure_local_device_identity(&conn)
+                let id = ensure_local_device_identity(&conn);
+                sync::backfill::run_desktop_sync_backfill(&conn, &id)
+                    .expect("Desktop sync backfill failed");
+                id
             };
 
             // Start the sync HTTP server in the background
-            let sync_handle = tauri::async_runtime::block_on(async {
-                sync::server::start_sync_server(
-                    shared_conn,
-                    local_device_id,
-                    "Desktop".to_string(),
-                )
-                .await
-                .expect("Failed to start sync server")
-            });
+            let sync_handle = sync::server::start_sync_server(
+                shared_conn,
+                local_device_id,
+                "Desktop".to_string(),
+            )
+            .expect("Failed to start sync server");
 
             app.manage(app_state);
             app.manage(SyncHandle(Some(sync_handle)));

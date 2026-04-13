@@ -25,6 +25,31 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleString();
 }
 
+function parseHostPort(input: string): { host: string; port: number } | null {
+  const value = input.trim();
+  if (!value) return null;
+
+  // Allow pasting full URL (e.g. http://192.168.1.10:47821)
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const url = new URL(value);
+      const host = url.hostname.trim();
+      const port = parseInt(url.port, 10);
+      if (!host || Number.isNaN(port)) return null;
+      return { host, port };
+    } catch {
+      return null;
+    }
+  }
+
+  const colonIdx = value.lastIndexOf(':');
+  if (colonIdx <= 0) return null;
+  const host = value.slice(0, colonIdx).trim();
+  const port = parseInt(value.slice(colonIdx + 1), 10);
+  if (!host || Number.isNaN(port)) return null;
+  return { host, port };
+}
+
 // ---------------------------------------------------------------------------
 // Sub-views
 // ---------------------------------------------------------------------------
@@ -42,7 +67,19 @@ function PairedView() {
       `Remove the pairing with "${pairedDesktop.displayName}"? You will need to re-pair to sync again.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Forget', style: 'destructive', onPress: () => void forgetDesktop() },
+        {
+          text: 'Forget',
+          style: 'destructive',
+          onPress: () => {
+            void forgetDesktop().catch((err) => {
+              const message =
+                err instanceof Error
+                  ? err.message
+                  : 'Could not unpair from desktop. Please try again.';
+              Alert.alert('Unpair failed', message);
+            });
+          },
+        },
       ],
     );
   }
@@ -103,8 +140,7 @@ function PairedView() {
 }
 
 function PairingForm() {
-  const [host, setHost] = useState('');
-  const [port, setPort] = useState('');
+  const [hostPort, setHostPort] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,9 +148,13 @@ function PairingForm() {
 
   async function handlePair() {
     setError(null);
-    const portNum = parseInt(port, 10);
-    if (!host.trim()) { setError('Host is required.'); return; }
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) { setError('Enter a valid port (1–65535).'); return; }
+    const parsed = parseHostPort(hostPort);
+    if (!parsed || parsed.port < 1 || parsed.port > 65535) {
+      setError('Enter a valid address in the format host:port (or paste http://host:port).');
+      return;
+    }
+    const host = parsed.host;
+    const portNum = parsed.port;
     if (code.trim().length === 0) { setError('Pairing code is required.'); return; }
 
     setLoading(true);
@@ -139,26 +179,16 @@ function PairingForm() {
           details shown there.
         </Text>
 
-        <Text style={styles.label}>Host (IP address)</Text>
+        <Text style={styles.label}>Address</Text>
         <TextInput
           style={styles.input}
-          value={host}
-          onChangeText={setHost}
-          placeholder="192.168.1.100"
+          value={hostPort}
+          onChangeText={setHostPort}
+          placeholder="192.168.1.100:47821"
           placeholderTextColor={COLORS.textSecondary}
           autoCapitalize="none"
           keyboardType="numbers-and-punctuation"
           autoCorrect={false}
-        />
-
-        <Text style={styles.label}>Port</Text>
-        <TextInput
-          style={styles.input}
-          value={port}
-          onChangeText={setPort}
-          placeholder="47821"
-          placeholderTextColor={COLORS.textSecondary}
-          keyboardType="number-pad"
         />
 
         <Text style={styles.label}>6-digit pairing code</Text>

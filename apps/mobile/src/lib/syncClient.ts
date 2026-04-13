@@ -43,6 +43,16 @@ export interface PairingCompleteResponse {
   syncCredential: string;
 }
 
+export interface PairingForgetRequest {
+  mobileDeviceId: string;
+  authToken: string;
+  protocolVersion: number;
+}
+
+export interface PairingForgetResponse {
+  ok: boolean;
+}
+
 export interface PullPushRequest {
   mobileDeviceId: string;
   desktopDeviceId: string;
@@ -73,31 +83,59 @@ export class SyncClientError extends Error {
     message: string,
     public readonly status?: number,
     public readonly body?: string,
+    public readonly code?: string,
   ) {
     super(message);
     this.name = 'SyncClientError';
   }
 }
 
+function normalizeHost(host: string): string {
+  let normalized = host.trim();
+  normalized = normalized.replace(/^https?:\/\//i, '');
+  normalized = normalized.replace(/\/+$/, '');
+  // Accept bracketed IPv6 input like [::1]
+  if (normalized.startsWith('[') && normalized.endsWith(']')) {
+    normalized = normalized.slice(1, -1);
+  }
+  return normalized;
+}
+
 async function post<TReq, TRes>(url: string, body: TReq): Promise<TRes> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new SyncClientError(`Network request failed for ${url}: ${reason}`);
+  }
   const text = await res.text();
   if (!res.ok) {
+    let errorCode: string | undefined;
+    try {
+      const parsed = JSON.parse(text) as { code?: unknown };
+      if (typeof parsed.code === 'string') {
+        errorCode = parsed.code;
+      }
+    } catch {
+      // keep undefined for plain-text / non-JSON error payloads
+    }
     throw new SyncClientError(
       `HTTP ${res.status} from ${url}`,
       res.status,
       text,
+      errorCode,
     );
   }
   return JSON.parse(text) as TRes;
 }
 
 export function buildBaseUrl(host: string, port: number): string {
-  return `http://${host}:${port}`;
+  return `http://${normalizeHost(host)}:${port}`;
 }
 
 export async function completePairing(
@@ -116,6 +154,16 @@ export async function pullPush(
 ): Promise<PullPushResponse> {
   return post<PullPushRequest, PullPushResponse>(
     `${baseUrl}/sync/pull-push`,
+    req,
+  );
+}
+
+export async function forgetPairing(
+  baseUrl: string,
+  req: PairingForgetRequest,
+): Promise<PairingForgetResponse> {
+  return post<PairingForgetRequest, PairingForgetResponse>(
+    `${baseUrl}/pairing/forget`,
     req,
   );
 }
