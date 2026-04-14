@@ -99,7 +99,7 @@ function AppShell({ children }: AppShellProps) {
               className={({ isActive }) => isActive ? "active" : ""}
             >
               <Icon name="redo" />
-              Review
+              Practice
             </NavLink>
           </NavItem>
           <Divider />

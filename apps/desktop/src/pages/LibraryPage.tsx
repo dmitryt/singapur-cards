@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import { Button, Loader, Dropdown, Confirm, Form, Input, TextArea, Message, Modal, Label, Icon } from "semantic-ui-react";
 import { useStore } from "../store";
 import type { CardListItem, CardDetail } from "../lib/tauri/commands";
 import * as commands from "../lib/tauri/commands";
-import { dslToHtml } from "@/lib/dslToHtml";
 
 const FilterBar = styled.div`
   display: flex;
@@ -21,12 +20,6 @@ const CardGrid = styled.div`
   align-content: start;
 `;
 
-
-const flipIn = keyframes`
-  from { transform: rotateY(90deg); opacity: 0; }
-  to { transform: rotateY(0deg); opacity: 1; }
-`;
-
 const CardActions = styled.div`
   position: absolute;
   top: 8px;
@@ -41,7 +34,6 @@ const CardTile = styled.div<{ status: string }>`
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   background: ${({ status, theme }) => theme.colors.learningStatus[status as keyof typeof theme.colors.learningStatus] ?? "#ffffff"};
-  cursor: pointer;
   height: 160px;
   display: flex;
   flex-direction: column;
@@ -85,7 +77,6 @@ const ActionBtn = styled.button`
 `;
 
 const CardContent = styled.div`
-  animation: ${flipIn} 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -98,16 +89,6 @@ const Headword = styled.div`
   font-weight: 600;
 `;
 
-const CardBack = styled.div`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-`;
 
 const statusOptions = [
   { key: "all", value: "", text: "All statuses" },
@@ -119,7 +100,6 @@ const statusOptions = [
 function LibraryPage() {
   const { cards, isLoadingCards, loadCards, updateCard, deleteCard, collections, loadCollections } = useStore();
   const [statusFilter, setStatusFilter] = useState("");
-  const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
   const [editingCard, setEditingCard] = useState<CardDetail | null>(null);
   const [editForm, setEditForm] = useState({ headword: "", answerText: "", exampleText: "", notes: "", collectionIds: [] as string[] });
   const [deleteCardId, setDeleteCardId] = useState<string | null>(null);
@@ -132,15 +112,6 @@ function LibraryPage() {
   useEffect(() => {
     if (collections.length === 0) loadCollections();
   }, []);
-
-  const handleFlip = (cardId: string) => {
-    setFlippedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(cardId)) next.delete(cardId);
-      else next.add(cardId);
-      return next;
-    });
-  };
 
   const handleEditClick = async (e: React.MouseEvent, card: CardListItem) => {
     e.stopPropagation();
@@ -182,11 +153,6 @@ function LibraryPage() {
   const handleDelete = async () => {
     if (!deleteCardId) return;
     await deleteCard(deleteCardId);
-    setFlippedCards(prev => {
-      const next = new Set(prev);
-      next.delete(deleteCardId);
-      return next;
-    });
     setDeleteCardId(null);
   };
 
@@ -216,45 +182,33 @@ function LibraryPage() {
         </Message>
       ) : (
         <CardGrid>
-          {cards.map(card => {
-            const isFlipped = flippedCards.has(card.id);
-            return (
-              <CardTile
-                key={card.id}
-                status={card.learningStatus}
-                onClick={() => handleFlip(card.id)}
-                tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && handleFlip(card.id)}
-              >
-                <CardActions>
-                  <ActionBtn onClick={(e) => handleEditClick(e, card)} title="Edit">
-                    <Icon name="edit outline" />
-                  </ActionBtn>
-                  <ActionBtn onClick={(e) => handleDeleteClick(e, card.id)} title="Delete">
-                    <Icon name="trash alternate outline" />
-                  </ActionBtn>
-                </CardActions>
-                <CardContent key={String(isFlipped)}>
-                  {!isFlipped ? (
-                    <>
-                      <Headword>{card.headword}</Headword>
-                      {card.collectionIds.length > 0 && (
-                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center" }}>
-                          {card.collectionIds.map(cid =>
-                            collectionMap[cid] ? (
-                              <Label key={cid} size="mini" basic>{collectionMap[cid]}</Label>
-                            ) : null
-                          )}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <CardBack dangerouslySetInnerHTML={{ __html: dslToHtml(card.answerText) }} />
-                  )}
-                </CardContent>
-              </CardTile>
-            );
-          })}
+          {cards.map(card => (
+            <CardTile
+              key={card.id}
+              status={card.learningStatus}
+            >
+              <CardActions>
+                <ActionBtn onClick={(e) => handleEditClick(e, card)} title="Edit">
+                  <Icon name="edit outline" />
+                </ActionBtn>
+                <ActionBtn onClick={(e) => handleDeleteClick(e, card.id)} title="Delete">
+                  <Icon name="trash alternate outline" />
+                </ActionBtn>
+              </CardActions>
+              <CardContent>
+                <Headword>{card.headword}</Headword>
+                {card.collectionIds.length > 0 && (
+                  <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center" }}>
+                    {card.collectionIds.map(cid =>
+                      collectionMap[cid] ? (
+                        <Label key={cid} size="mini" basic>{collectionMap[cid]}</Label>
+                      ) : null
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </CardTile>
+          ))}
         </CardGrid>
       )}
 

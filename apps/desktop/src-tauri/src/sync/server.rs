@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{io::ErrorKind, sync::{Arc, Mutex}};
 
 use axum::{
     extract::State,
@@ -657,8 +657,8 @@ fn collect_tombstones_since(
 // Server startup and pairing mode
 // ---------------------------------------------------------------------------
 
-/// Starts the axum HTTP server on a random available port and returns a handle
-/// with the bound port and shared sync state.
+/// Starts the axum HTTP server on a fixed port and returns a handle with the
+/// bound port and shared sync state.
 ///
 /// Binds using a std listener (no async runtime required), then runs axum on a
 /// dedicated OS thread with its own tokio runtime to avoid IO-driver association
@@ -668,8 +668,18 @@ pub fn start_sync_server(
     local_device_id: String,
     local_display_name: String,
 ) -> Result<SharedSyncState, String> {
-    let std_listener = std::net::TcpListener::bind("0.0.0.0:0")
-        .map_err(|e| format!("Failed to bind sync server: {e}"))?;
+    const SYNC_PORT: u16 = 47821;
+    let std_listener = std::net::TcpListener::bind(("0.0.0.0", SYNC_PORT))
+        .map_err(|e| {
+            if e.kind() == ErrorKind::AddrInUse {
+                format!(
+                    "Failed to bind sync server on port {SYNC_PORT}: address already in use. \
+                     Close the app using that port or free it, then restart Singapur Cards."
+                )
+            } else {
+                format!("Failed to bind sync server on port {SYNC_PORT}: {e}")
+            }
+        })?;
     std_listener
         .set_nonblocking(true)
         .map_err(|e| format!("Failed to set sync server non-blocking: {e}"))?;

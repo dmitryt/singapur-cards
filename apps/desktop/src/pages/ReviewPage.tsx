@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import styled, { css, keyframes } from "styled-components";
+import styled, { css } from "styled-components";
 import { Button, Progress, Message, Loader } from "semantic-ui-react";
 import { useStore } from "../store";
 import type { CardDetail } from "../lib/tauri/commands";
 import * as commands from "../lib/tauri/commands";
+import { dslToHtml } from "@/lib/dslToHtml";
 
 const ReviewLayout = styled.div`
   display: flex;
@@ -13,37 +14,54 @@ const ReviewLayout = styled.div`
   gap: ${({ theme }) => theme.spacing.lg};
 `;
 
-const flipIn = keyframes`
-  from { transform: rotateY(90deg); opacity: 0; }
-  to { transform: rotateY(0deg); opacity: 1; }
+const FlipCard = styled.div`
+  width: 480px;
+  cursor: pointer;
+  perspective: 1200px;
 `;
 
-const FlipCard = styled.div<{ flipped: boolean }>`
-  width: 480px;
-  min-height: 200px;
+const FlipCardInner = styled.div<{ flipped: boolean }>`
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.45s ease;
+  ${({ flipped }) => flipped && css`transform: rotateY(180deg);`}
+`;
+
+const CardFace = styled.div`
   padding: ${({ theme }) => theme.spacing.xl};
   border: 2px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   background: ${({ theme }) => theme.colors.surface};
-  cursor: pointer;
-  text-align: center;
   box-shadow: ${({ theme }) => theme.shadows.md};
-  animation: ${flipIn} 0.2s ease;
-  ${({ flipped, theme }) => flipped && css`
-    border-color: ${theme.colors.primary};
-    background: #f0f7ff;
-  `}
+  text-align: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 `;
 
-const CardFront = styled.div`
+const CardFront = styled(CardFace)`
   font-size: ${({ theme }) => theme.fontSizes.xl};
   font-weight: bold;
 `;
 
-const CardBack = styled.div`
+const CardBack = styled(CardFace)<{ flipped: boolean }>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: rotateY(180deg);
+  border-color: ${({ theme }) => theme.colors.primary};
+  background: #f0f7ff;
   font-size: ${({ theme }) => theme.fontSizes.md};
-  line-height: 1.6;
+  line-height: 1;
   white-space: pre-wrap;
+  overflow-y: auto;
+  ${({ flipped }) => flipped && css`align-items: start; justify-content: left;`}
 `;
 
 const ReviewControls = styled.div`
@@ -122,7 +140,7 @@ function ReviewPage() {
                 <div className="label">Total</div>
               </div>
             </div>
-            <Button primary onClick={handleStart}>Review Again</Button>
+            <Button primary onClick={handleStart}>Practice Again</Button>
           </SessionStats>
         </ReviewLayout>
       </>
@@ -137,12 +155,12 @@ function ReviewPage() {
     return (
       <>
         <ReviewLayout>
-          <h2>Review Cards</h2>
+          <h2>Practice Cards</h2>
           <Message info>
             <Message.Header>No cards in library</Message.Header>
-            <p>Save words as cards from the headword detail page to start reviewing.</p>
+            <p>Save words as cards from the headword detail page to start practicing.</p>
           </Message>
-          <Button primary onClick={handleStart}>Start Review</Button>
+          <Button primary onClick={handleStart}>Start Practice</Button>
         </ReviewLayout>
       </>
     );
@@ -160,17 +178,16 @@ function ReviewPage() {
             </div>
           </div>
 
-          <FlipCard flipped={isFlipped} onClick={flipCard}>
-            {!isFlipped ? (
-              <CardFront>{currentCardData.headword}</CardFront>
-            ) : (
-              <CardBack>{currentCardData.answerText}</CardBack>
-            )}
-            {!isFlipped && (
-              <div style={{ marginTop: "16px", fontSize: "12px", color: "#999" }}>
-                Click to reveal answer
-              </div>
-            )}
+          <FlipCard onClick={flipCard}>
+            <FlipCardInner flipped={isFlipped}>
+              <CardFront>
+                {currentCardData.headword}
+                <div style={{ marginTop: "16px", fontSize: "12px", color: "#999" }}>
+                  Click to reveal answer
+                </div>
+              </CardFront>
+              <CardBack flipped={isFlipped} dangerouslySetInnerHTML={{ __html: `${dslToHtml(currentCardData.answerText)}` }} />
+            </FlipCardInner>
           </FlipCard>
 
           {isFlipped && (
@@ -200,9 +217,9 @@ function ReviewPage() {
   return (
     <>
       <ReviewLayout>
-        <h2>Review Cards</h2>
+        <h2>Practice Cards</h2>
         <Button primary size="large" onClick={handleStart} loading={isStarting}>
-          Start Review
+          Start Practice
         </Button>
       </ReviewLayout>
     </>

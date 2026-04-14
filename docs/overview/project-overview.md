@@ -2,7 +2,7 @@
 
 ## Product
 
-Singapur Cards is an offline-first vocabulary learning app that imports ABBYY Lingvo DSL dictionaries, supports local search, and turns entries into study cards with review sessions.
+Singapur Cards is an offline-first vocabulary learning app that imports ABBYY Lingvo DSL dictionaries, supports local search, and turns entries into study cards with practice sessions.
 
 ## Current Runtime Scope
 
@@ -22,7 +22,7 @@ Singapur Cards is an offline-first vocabulary learning app that imports ABBYY Li
 
 - [Cards](../features/cards.md)
 - [Collections](../features/collections.md)
-- [Reviews](../features/reviews.md)
+- [Practice](../features/practice.md)
 - [Dictionaries](../features/dictionaries.md)
 - [Languages](../features/languages.md)
 - [User Profile](../features/user-profile.md)

@@ -12,7 +12,7 @@
 | DSL import and indexing | Implemented | Not implemented |
 | Headword search and detail | Implemented | Not implemented |
 | Card and collection management | Implemented | Not implemented |
-| Review sessions | Implemented | Not implemented |
+| Practice sessions | Implemented | Not implemented |
 | AI chat and API key flow | Implemented | Not implemented |
 | Custom model management | Specified for desktop scope | Not implemented |
 

@@ -9,9 +9,9 @@
 5. User opens `HeadwordDetail` and creates card.
 6. Backend enforces dedupe on `headword + language`.
 
-## Review Session
+## Practice Session
 
-1. User starts review for all cards or selected collection.
+1. User starts practice for all cards or selected collection.
 2. Frontend calls `start_review_session`.
 3. Backend returns ordered IDs: unreviewed, not learned, learned.
 4. User flips card and records result with `record_review_result`.

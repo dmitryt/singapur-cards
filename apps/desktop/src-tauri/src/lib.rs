@@ -41,7 +41,7 @@ pub fn run() {
                 local_device_id,
                 "Desktop".to_string(),
             )
-            .expect("Failed to start sync server");
+            .unwrap_or_else(|e| panic!("Failed to start sync server: {e}"));
 
             app.manage(app_state);
             app.manage(SyncHandle(Some(sync_handle)));
