@@ -1,0 +1,42 @@
+:root {
+  /* Matches mobile theme palette in src/theme.ts */
+  --color-text: #212529;
+  --color-text-secondary: #6c757d;
+  --color-highlight: #cccccc;
+
+  /* DSL-specific styles */
+  --dsl-comment: var(--color-text);
+  --dsl-example: #999999;
+  --dsl-color: #008000;
+  --dsl-label: #008000;
+  --dsl-star: #f2711c;
+}
+
+.dsl-comment {
+  color: var(--dsl-comment);
+}
+
+.dsl-example {
+  color: var(--dsl-example);
+}
+
+.dsl-color {
+  color: var(--dsl-color);
+}
+
+.dsl-label {
+  color: var(--dsl-label);
+}
+
+.dsl-star {
+  color: var(--dsl-star);
+}
+
+.model-answer-strong {
+  font-weight: 700;
+}
+
+.model-answer-highlight {
+  padding: 0 2px;
+  background-color: var(--color-highlight);
+}

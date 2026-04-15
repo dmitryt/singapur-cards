@@ -1,8 +1,10 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import { FlipCard } from '../molecules/FlipCard';
 import { Badge } from '../atoms/Badge';
 import { STATUS_COLORS, STATUS_BADGE, COLORS } from '../../theme';
 import type { Card } from '../../hooks/useCards';
+import { dslToStyledSegments } from '../../lib/dslToHtml';
 
 interface ReviewCardProps {
   card: Card;
@@ -15,6 +17,10 @@ interface ReviewCardProps {
 export function ReviewCard({ card, isFlipped, recording, onFlip, onResult }: ReviewCardProps) {
   const status = card.learningStatus as keyof typeof STATUS_BADGE;
   const bgColor = STATUS_COLORS[status] ?? STATUS_COLORS.unreviewed;
+  const answerSegments = useMemo(
+    () => dslToStyledSegments(card.answerText),
+    [card.answerText],
+  );
 
   const front = (
     <View style={styles.face}>
@@ -24,12 +30,24 @@ export function ReviewCard({ card, isFlipped, recording, onFlip, onResult }: Rev
   );
 
   const back = (
-    <View style={styles.face}>
-      <Text style={styles.answer}>{card.answerText}</Text>
-      {card.exampleText ? (
-        <Text style={styles.example}>{card.exampleText}</Text>
-      ) : null}
-    </View>
+    <ScrollView
+      style={styles.backScroll}
+      contentContainerStyle={styles.backScrollContent}
+      showsVerticalScrollIndicator
+    >
+      <View style={styles.backContent}>
+        <Text style={styles.answer}>
+          {answerSegments.map((segment, index) => (
+            <Text key={`${index}-${segment.text.slice(0, 8)}`} style={segment.style}>
+              {segment.text}
+            </Text>
+          ))}
+        </Text>
+        {card.exampleText ? (
+          <Text style={styles.example}>{card.exampleText}</Text>
+        ) : null}
+      </View>
+    </ScrollView>
   );
 
   return (
@@ -59,6 +77,18 @@ const styles = StyleSheet.create({
   },
   face: {
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  backScroll: {
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  backScrollContent: {
+    flexGrow: 1,
+  },
+  backContent: {
+    alignSelf: 'stretch',
     gap: 12,
   },
   headword: {
@@ -68,16 +98,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   answer: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '500',
     color: COLORS.text,
-    textAlign: 'center',
+    textAlign: 'left',
+    alignSelf: 'stretch',
+    lineHeight: 24,
   },
   example: {
     fontSize: 14,
     color: COLORS.textSecondary,
     fontStyle: 'italic',
-    textAlign: 'center',
+    textAlign: 'left',
+    alignSelf: 'stretch',
     marginTop: 8,
   },
   hint: {

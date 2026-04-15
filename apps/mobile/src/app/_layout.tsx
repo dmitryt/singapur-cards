@@ -9,6 +9,7 @@ import migrations from '../db/migrations/migrations';
 import { useActiveLanguageStore } from '../store/activeLanguageStore';
 import { applySyncTriggers } from '../db/syncTriggers';
 import { useSyncStore } from '../store/syncStore';
+import '../global.css';
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);

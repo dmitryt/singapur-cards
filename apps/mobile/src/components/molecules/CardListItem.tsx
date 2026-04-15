@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../theme';
 import type { Card } from '../../hooks/useCards';
+import { dslToPlainText } from '../../lib/dslToHtml';
 
 const STATUS_BORDER: Record<string, string> = {
   learned:     '#21ba45',
@@ -16,13 +18,14 @@ interface CardListItemProps {
 
 export function CardListItem({ card, onPress }: CardListItemProps) {
   const borderColor = STATUS_BORDER[card.learningStatus] ?? 'transparent';
+  const parsedAnswerText = useMemo(() => dslToPlainText(card.answerText), [card.answerText]);
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={[styles.statusBar, { backgroundColor: borderColor }]} />
       <View style={styles.body}>
         <Text style={styles.headword} numberOfLines={2}>{card.headword}</Text>
-        <Text style={styles.answer} numberOfLines={2}>{card.answerText}</Text>
+        <Text style={styles.answer} numberOfLines={2}>{parsedAnswerText}</Text>
         <View style={styles.actions}>
           <View style={styles.audioBtn}>
             <Ionicons name="volume-medium" size={14} color={COLORS.textSecondary} />
