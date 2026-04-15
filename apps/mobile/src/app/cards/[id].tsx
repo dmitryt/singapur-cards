@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,6 +10,7 @@ import { Badge } from '../../components/atoms/Badge';
 import { Button } from '../../components/atoms/Button';
 import { STATUS_COLORS, STATUS_BADGE, COLORS } from '../../theme';
 import { useCollectionsStore } from '../../store/collectionsStore';
+import { dslToPlainText } from '../../lib/dslToHtml';
 
 type Card = typeof cards.$inferSelect;
 
@@ -20,6 +21,7 @@ export default function CardDetailScreen() {
   const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
   const [sheetOpen, setSheetOpen] = useState(false);
   const insets = useSafeAreaInsets();
+  const parsedAnswerText = useMemo(() => dslToPlainText(card?.answerText ?? ''), [card?.answerText]);
 
   const collections = useCollectionsStore((s) => s.collections);
   const loadCollections = useCollectionsStore((s) => s.load);
@@ -109,7 +111,7 @@ export default function CardDetailScreen() {
         </View>
         <View style={styles.divider} />
         <Text style={styles.sectionLabel}>Answer</Text>
-        <Text style={styles.answer}>{card.answerText}</Text>
+        <Text style={styles.answer}>{parsedAnswerText}</Text>
         {card.exampleText ? (
           <>
             <Text style={styles.sectionLabel}>Example</Text>
@@ -298,6 +300,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text,
   },
-  gap8:  { width: 8 },
+  gap8: { width: 8 },
   gap16: { height: 16 },
 });

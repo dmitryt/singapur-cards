@@ -5,6 +5,7 @@ import { Dropdown } from "../components/atoms";
 import type { DropdownProps } from "semantic-ui-react";
 import PageContainer from "../components/templates/PageContainer";
 import { saveApiCredential, deleteApiCredential } from "../lib/tauri/commands";
+import { DesktopSyncSection } from "../features/sync/DesktopSyncSection";
 
 const Section = styled.div`
   max-width: 400px;
@@ -144,18 +145,7 @@ function ProfilePage() {
         />
       </Section>
 
-      {/* TODO: Desktop Sync section
-          Add a "Desktop Sync" section here that lets the user:
-          1. Start pairing mode — calls the `sync_start_pairing` Tauri command, which returns
-             { host, port, code, expiresAt }. Display host:port and the 6-digit code for 60 s
-             so the user can enter it on mobile (Settings → Desktop Sync → Pair).
-          2. View paired mobile devices — calls `sync_get_paired_devices`, shows device name
-             and last-sync timestamp.
-          3. Forget a device — calls `sync_forget_device({ deviceId })` per device row.
-
-          All three Tauri commands are already registered in src-tauri/src/lib.rs.
-          Wire them up via invoke() in src/lib/tauri/commands.ts following the existing pattern.
-      */}
+      <DesktopSyncSection />
 
       <Section>
         <Label>OpenRouter API Key</Label>

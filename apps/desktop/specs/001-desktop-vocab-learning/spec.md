@@ -102,7 +102,7 @@ A learner organizes saved cards into named collections (e.g., "Business Vocabula
 - **FR-010**: Users MUST be able to edit a card's saved translation or definition, example text, notes, and pronunciation field before or after saving.
 - **FR-011**: The system MUST allow users to organize cards into collections.
 - **FR-012**: The system MUST allow a single card to belong to one or more collections at the same time.
-- **FR-013**: Users MUST be able to browse saved cards outside of review mode.
+- **FR-013**: Users MUST be able to browse saved cards outside of review mode. The library view displays card fronts (headword and collection labels) only; card flipping is exclusive to review mode.
 - **FR-014**: The system MUST provide a basic review mode where users can view a card front, flip to the back, and move to the next card. Cards MUST be ordered with `unreviewed` cards first, then `not_learned`, then `learned`, randomized within each group.
 - **FR-015**: The system MUST allow users to mark each reviewed card as learned or not learned.
 - **FR-016**: The system MUST store imported dictionaries, saved cards, collections, and review status locally on the device.

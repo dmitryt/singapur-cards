@@ -6,7 +6,7 @@
 - **`Features`** - one file per feature domain
   - [`Cards`](./features/cards.md)
   - [`Collections`](./features/collections.md)
-  - [`Reviews`](./features/reviews.md)
+  - [`Practice`](./features/practice.md)
   - [`Dictionaries`](./features/dictionaries.md)
   - [`Languages`](./features/languages.md)
   - [`User Profile`](./features/user-profile.md)

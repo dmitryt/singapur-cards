@@ -1,23 +1,23 @@
-### Feature: Reviews
+### Feature: Practice
 
 #### 1. Overview
-- Reviews provide the active learning loop over saved cards.
+- Practice provides the active learning loop over saved cards.
 - Sessions can target all cards or a selected collection.
 - Outcomes update card learning state and persist across restarts.
 
 #### 2. Goals & Non-Goals
 - Goals:
-  - Run sequential review sessions with stable ordering semantics.
+  - Run sequential practice sessions with stable ordering semantics.
   - Capture learned/not-learned outcomes per card.
-  - Persist review progress locally.
+  - Persist practice progress locally.
 - Non-Goals:
   - Spaced repetition scheduling algorithms.
   - Card content editing (covered in [Cards](./cards.md)).
 
 #### 3. User Stories
-- A learner starts a review run and flips cards front/back.
+- A learner starts a practice run and flips cards front/back.
 - A learner marks each card as learned or not learned.
-- A learner resumes app later and sees persisted review status.
+- A learner resumes app later and sees persisted practice status.
 
 #### 4. Functional Requirements
 - Start session optionally scoped to a collection.
@@ -27,7 +27,7 @@
 - Show explicit empty state when no cards are available.
 
 #### 5. UX / UI Description
-- Review screen presents one card at a time.
+- Practice screen presents one card at a time.
 - Front side prompts recall; back side reveals answer.
 - Action controls mark outcomes and continue flow.
 - Empty and completion states are explicit and actionable.
@@ -47,12 +47,12 @@ type ReviewEvent = {
 #### 7. API / Integration
 - `start_review_session`
 - `record_review_result`
-- `list_cards` can be used for review preparation/filtering.
-- Review ordering is backend-owned; clients should not resort.
+- `list_cards` can be used for practice preparation/filtering.
+- Session ordering is backend-owned; clients should not resort.
 
 #### 8. State Management
 - Session state tracks current card index and ordered card IDs.
-- Review actions update both per-session progress and persisted status.
+- Practice actions update both per-session progress and persisted status.
 - Recoverable failures should keep session context when possible.
 
 #### 9. Storage
@@ -75,13 +75,13 @@ type ReviewEvent = {
 #### 13. Analytics
 - Not formally specified.
 - Suggested metrics:
-  - reviews completed per session
+  - sessions completed per run
   - learned vs not-learned distribution
   - abandoned session rate
 
 #### 14. Open Questions
 - Should partial session progress snapshots be explicit in UI?
-- Should review history be queryable by time window?
+- Should practice history be queryable by time window?
 - Should session randomization be seedable for testing/debug?
 
 #### 15. Future Improvements

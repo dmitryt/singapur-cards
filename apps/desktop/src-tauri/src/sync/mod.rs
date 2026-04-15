@@ -1,3 +1,4 @@
+pub mod backfill;
 pub mod server;
 pub mod types;
 
@@ -87,6 +88,28 @@ pub fn sync_forget_device(
 // ---------------------------------------------------------------------------
 
 fn get_local_ip() -> Option<String> {
+    // Preferred path: inspect local network interfaces directly and pick a
+    // private IPv4 first (best UX for same-LAN pairing).
+    if let Ok(addrs) = local_ip_address::list_afinet_netifas() {
+        for (_, ip) in addrs {
+            if let IpAddr::V4(v4) = ip {
+                if !v4.is_loopback() && !v4.is_link_local() && v4.is_private() {
+                    return Some(v4.to_string());
+                }
+            }
+        }
+    }
+
+    // Fallback: use any non-loopback IPv4 from local_ip().
+    if let Ok(ip) = local_ip_address::local_ip() {
+        if let IpAddr::V4(v4) = ip {
+            if !v4.is_loopback() && !v4.is_link_local() {
+                return Some(v4.to_string());
+            }
+        }
+    }
+
+    // Fallback: UDP route probing to pick the primary outbound interface.
     let socket = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
     socket.connect("8.8.8.8:80").ok()?;
     let addr = socket.local_addr().ok()?;

@@ -6,15 +6,17 @@
  *
  * Usage:
  *   npm run db:seed
- *   npm run db:seed -- --db /tmp/custom.db
+ *   npm run db:seed -- --db ./.data/custom.db
  *   npm run db:seed -- --seed 42
+ *
+ * Default DB path matches `npm run start:shared-db` (see `src/db/index.ts`).
  */
 
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { faker } from '@faker-js/faker';
-import { readFileSync, rmSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, rmSync, existsSync, mkdirSync } from 'fs';
+import { dirname, join, resolve } from 'path';
 import * as schema from '../src/db/schema';
 import {
   aiCredentials,
@@ -47,7 +49,7 @@ const COLLECTION_NAMES = ['Core Vocabulary', 'Verbs', 'Nouns', 'Daily Use'];
 function parseArgs(): { seed: number; dbPath: string } {
   const args = process.argv.slice(2);
   let seed = 12345;
-  let dbPath = '/tmp/singapur_mobile_dev.db';
+  let dbPath = resolve(process.cwd(), '.data', 'singapur_cards_mobile.db');
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--seed' && args[i + 1]) {
@@ -88,6 +90,7 @@ async function main() {
   const { seed, dbPath } = parseArgs();
   console.log(`Seeding database at: ${dbPath} (seed=${seed})`);
 
+  mkdirSync(dirname(dbPath), { recursive: true });
   if (existsSync(dbPath)) rmSync(dbPath);
 
   const sqlite = new Database(dbPath);

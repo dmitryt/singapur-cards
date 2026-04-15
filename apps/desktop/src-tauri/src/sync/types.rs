@@ -59,6 +59,21 @@ pub struct PairingCompleteResponse {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct PairingForgetRequest {
+    #[serde(rename = "mobileDeviceId")]
+    pub mobile_device_id: String,
+    #[serde(rename = "authToken")]
+    pub auth_token: String,
+    #[serde(rename = "protocolVersion")]
+    pub protocol_version: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PairingForgetResponse {
+    pub ok: bool,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct PullPushRequest {
     #[serde(rename = "mobileDeviceId")]
     pub mobile_device_id: String,
@@ -112,4 +127,6 @@ pub struct PairingModeInfo {
     pub code: String,
     #[serde(rename = "expiresAt")]
     pub expires_at: String,
+    #[serde(rename = "displayName")]
+    pub display_name: String,
 }

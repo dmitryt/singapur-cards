@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{io::ErrorKind, sync::{Arc, Mutex}};
 
 use axum::{
     extract::State,
@@ -13,7 +13,8 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use super::types::{
-    ConflictSummary, PairingCompleteRequest, PairingCompleteResponse, PairingModeInfo,
+    ConflictSummary, PairingCompleteRequest, PairingCompleteResponse, PairingForgetRequest,
+    PairingForgetResponse, PairingModeInfo,
     PullPushRequest, PullPushResponse, SyncChange, SyncTombstone, PROTOCOL_VERSION,
 };
 
@@ -42,17 +43,32 @@ pub type SharedSyncState = Arc<SyncServerState>;
 // Error helper
 // ---------------------------------------------------------------------------
 
-struct SyncError(StatusCode, String);
+struct SyncError {
+    status: StatusCode,
+    code: &'static str,
+    message: String,
+}
 
 impl IntoResponse for SyncError {
     fn into_response(self) -> Response {
-        (self.0, self.1).into_response()
+        (
+            self.status,
+            Json(serde_json::json!({
+                "code": self.code,
+                "message": self.message
+            })),
+        )
+            .into_response()
     }
 }
 
 impl From<rusqlite::Error> for SyncError {
     fn from(e: rusqlite::Error) -> Self {
-        SyncError(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+        SyncError {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            code: "INTERNAL_ERROR",
+            message: e.to_string(),
+        }
     }
 }
 
@@ -65,6 +81,7 @@ type SyncResult<T> = std::result::Result<T, SyncError>;
 pub fn make_router(state: SharedSyncState) -> Router {
     Router::new()
         .route("/pairing/complete", post(handle_pairing_complete))
+        .route("/pairing/forget", post(handle_pairing_forget))
         .route("/sync/pull-push", post(handle_pull_push))
         .with_state(state)
 }
@@ -78,13 +95,14 @@ async fn handle_pairing_complete(
     Json(req): Json<PairingCompleteRequest>,
 ) -> SyncResult<Json<PairingCompleteResponse>> {
     if req.protocol_version != PROTOCOL_VERSION {
-        return Err(SyncError(
-            StatusCode::BAD_REQUEST,
-            format!(
+        return Err(SyncError {
+            status: StatusCode::BAD_REQUEST,
+            code: "PROTOCOL_MISMATCH",
+            message: format!(
                 "Protocol version mismatch: expected {}, got {}",
                 PROTOCOL_VERSION, req.protocol_version
             ),
-        ));
+        });
     }
 
     // Validate pairing session
@@ -92,29 +110,38 @@ async fn handle_pairing_complete(
         let mut session_guard = state
             .pairing_session
             .lock()
-            .map_err(|_| SyncError(StatusCode::INTERNAL_SERVER_ERROR, "Lock poisoned".into()))?;
+            .map_err(|_| SyncError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                code: "INTERNAL_ERROR",
+                message: "Lock poisoned".into(),
+            })?;
 
-        let session = session_guard.as_mut().ok_or_else(|| {
-            SyncError(StatusCode::CONFLICT, "No active pairing session".into())
+        let session = session_guard.as_mut().ok_or_else(|| SyncError {
+            status: StatusCode::CONFLICT,
+            code: "NO_ACTIVE_PAIRING",
+            message: "No active pairing session".into(),
         })?;
 
         if session.used {
-            return Err(SyncError(
-                StatusCode::CONFLICT,
-                "Pairing token already used".into(),
-            ));
+            return Err(SyncError {
+                status: StatusCode::CONFLICT,
+                code: "PAIRING_TOKEN_USED",
+                message: "Pairing token already used".into(),
+            });
         }
         if Utc::now() > session.expires_at {
-            return Err(SyncError(
-                StatusCode::GONE,
-                "Pairing token expired".into(),
-            ));
+            return Err(SyncError {
+                status: StatusCode::GONE,
+                code: "PAIRING_TOKEN_EXPIRED",
+                message: "Pairing token expired".into(),
+            });
         }
         if session.code != req.pairing_token {
-            return Err(SyncError(
-                StatusCode::UNAUTHORIZED,
-                "Invalid pairing token".into(),
-            ));
+            return Err(SyncError {
+                status: StatusCode::UNAUTHORIZED,
+                code: "INVALID_PAIRING_TOKEN",
+                message: "Invalid pairing token".into(),
+            });
         }
         session.used = true;
     }
@@ -127,7 +154,11 @@ async fn handle_pairing_complete(
         let conn = state
             .conn
             .lock()
-            .map_err(|_| SyncError(StatusCode::INTERNAL_SERVER_ERROR, "DB lock poisoned".into()))?;
+            .map_err(|_| SyncError {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                code: "INTERNAL_ERROR",
+                message: "DB lock poisoned".into(),
+            })?;
 
         conn.execute(
             "INSERT INTO sync_devices (id, display_name, is_local, credential, paired_at, created_at)
@@ -154,6 +185,63 @@ async fn handle_pairing_complete(
     }))
 }
 
+async fn handle_pairing_forget(
+    State(state): State<SharedSyncState>,
+    Json(req): Json<PairingForgetRequest>,
+) -> SyncResult<Json<PairingForgetResponse>> {
+    if req.protocol_version != PROTOCOL_VERSION {
+        return Err(SyncError {
+            status: StatusCode::BAD_REQUEST,
+            code: "PROTOCOL_MISMATCH",
+            message: format!(
+                "Protocol version mismatch: expected {}, got {}",
+                PROTOCOL_VERSION, req.protocol_version
+            ),
+        });
+    }
+
+    let conn = state.conn.lock().map_err(|_| SyncError {
+        status: StatusCode::INTERNAL_SERVER_ERROR,
+        code: "INTERNAL_ERROR",
+        message: "DB lock poisoned".into(),
+    })?;
+
+    let stored_credential: Option<String> = conn
+        .query_row(
+            "SELECT credential FROM sync_devices WHERE id = ?1 AND is_local = 0",
+            rusqlite::params![req.mobile_device_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+
+    let Some(stored_credential) = stored_credential else {
+        return Err(SyncError {
+            status: StatusCode::UNAUTHORIZED,
+            code: "PAIRING_REVOKED",
+            message: "Unknown mobile device".into(),
+        });
+    };
+
+    if stored_credential != req.auth_token {
+        return Err(SyncError {
+            status: StatusCode::UNAUTHORIZED,
+            code: "PAIRING_REVOKED",
+            message: "Invalid auth token".into(),
+        });
+    }
+
+    conn.execute(
+        "DELETE FROM sync_cursors WHERE peer_device_id = ?1",
+        rusqlite::params![req.mobile_device_id],
+    )?;
+    conn.execute(
+        "DELETE FROM sync_devices WHERE id = ?1 AND is_local = 0",
+        rusqlite::params![req.mobile_device_id],
+    )?;
+
+    Ok(Json(PairingForgetResponse { ok: true }))
+}
+
 // ---------------------------------------------------------------------------
 // Pull-push sync handler
 // ---------------------------------------------------------------------------
@@ -163,19 +251,24 @@ async fn handle_pull_push(
     Json(req): Json<PullPushRequest>,
 ) -> SyncResult<Json<PullPushResponse>> {
     if req.protocol_version != PROTOCOL_VERSION {
-        return Err(SyncError(
-            StatusCode::BAD_REQUEST,
-            format!(
+        return Err(SyncError {
+            status: StatusCode::BAD_REQUEST,
+            code: "PROTOCOL_MISMATCH",
+            message: format!(
                 "Protocol version mismatch: expected {}, got {}",
                 PROTOCOL_VERSION, req.protocol_version
             ),
-        ));
+        });
     }
 
     let conn = state
         .conn
         .lock()
-        .map_err(|_| SyncError(StatusCode::INTERNAL_SERVER_ERROR, "DB lock poisoned".into()))?;
+        .map_err(|_| SyncError {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            code: "INTERNAL_ERROR",
+            message: "DB lock poisoned".into(),
+        })?;
 
     // Authenticate
     let stored_credential: Option<String> = conn
@@ -186,15 +279,18 @@ async fn handle_pull_push(
         )
         .optional()?;
 
-    let stored_credential = stored_credential.ok_or_else(|| {
-        SyncError(StatusCode::UNAUTHORIZED, "Unknown mobile device".into())
+    let stored_credential = stored_credential.ok_or_else(|| SyncError {
+        status: StatusCode::UNAUTHORIZED,
+        code: "PAIRING_REVOKED",
+        message: "Unknown mobile device".into(),
     })?;
 
     if stored_credential != req.auth_token {
-        return Err(SyncError(
-            StatusCode::UNAUTHORIZED,
-            "Invalid auth token".into(),
-        ));
+        return Err(SyncError {
+            status: StatusCode::UNAUTHORIZED,
+            code: "PAIRING_REVOKED",
+            message: "Invalid auth token".into(),
+        });
     }
 
     // Deduplicate by request_id
@@ -295,6 +391,7 @@ async fn handle_pull_push(
         .max()
         .unwrap_or(req.known_acked_local_cursor);
 
+    
     Ok(Json(PullPushResponse {
         accepted_local_cursor,
         remote_cursor: new_remote_cursor,
@@ -377,7 +474,11 @@ fn apply_change(
     }
 
     let payload: Value = serde_json::from_str(&change.payload_json)
-        .map_err(|e| SyncError(StatusCode::BAD_REQUEST, format!("Invalid payload JSON: {e}")))?;
+        .map_err(|e| SyncError {
+            status: StatusCode::BAD_REQUEST,
+            code: "INVALID_PAYLOAD",
+            message: format!("Invalid payload JSON: {e}"),
+        })?;
 
     let table = change.table_name.as_str();
     let mut conflict_summary: Option<ConflictSummary> = None;
@@ -453,7 +554,11 @@ fn upsert_row(
 ) -> SyncResult<()> {
     let obj = payload
         .as_object()
-        .ok_or_else(|| SyncError(StatusCode::BAD_REQUEST, "Payload is not an object".into()))?;
+        .ok_or_else(|| SyncError {
+            status: StatusCode::BAD_REQUEST,
+            code: "INVALID_PAYLOAD",
+            message: "Payload is not an object".into(),
+        })?;
 
     let columns: Vec<&str> = obj.keys().map(String::as_str).collect();
     let placeholders: Vec<String> = (1..=columns.len()).map(|i| format!("?{i}")).collect();
@@ -552,20 +657,34 @@ fn collect_tombstones_since(
 // Server startup and pairing mode
 // ---------------------------------------------------------------------------
 
-/// Starts the axum HTTP server on a random available port and returns a handle
-/// with the bound port and shared sync state.
-pub async fn start_sync_server(
+/// Starts the axum HTTP server on a fixed port and returns a handle with the
+/// bound port and shared sync state.
+///
+/// Binds using a std listener (no async runtime required), then runs axum on a
+/// dedicated OS thread with its own tokio runtime to avoid IO-driver association
+/// issues with Tauri's runtime.
+pub fn start_sync_server(
     conn: Arc<Mutex<Connection>>,
     local_device_id: String,
     local_display_name: String,
 ) -> Result<SharedSyncState, String> {
-    use tokio::net::TcpListener;
+    const SYNC_PORT: u16 = 47821;
+    let std_listener = std::net::TcpListener::bind(("0.0.0.0", SYNC_PORT))
+        .map_err(|e| {
+            if e.kind() == ErrorKind::AddrInUse {
+                format!(
+                    "Failed to bind sync server on port {SYNC_PORT}: address already in use. \
+                     Close the app using that port or free it, then restart Singapur Cards."
+                )
+            } else {
+                format!("Failed to bind sync server on port {SYNC_PORT}: {e}")
+            }
+        })?;
+    std_listener
+        .set_nonblocking(true)
+        .map_err(|e| format!("Failed to set sync server non-blocking: {e}"))?;
 
-    let listener = TcpListener::bind("0.0.0.0:0")
-        .await
-        .map_err(|e| format!("Failed to bind sync server: {e}"))?;
-
-    let port = listener
+    let port = std_listener
         .local_addr()
         .map_err(|e| format!("Failed to get sync server address: {e}"))?
         .port();
@@ -580,10 +699,20 @@ pub async fn start_sync_server(
 
     let router = make_router(state.clone());
 
-    tauri::async_runtime::spawn(async move {
-        axum::serve(listener, router)
-            .await
-            .expect("Sync HTTP server error");
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(2)
+            .enable_all()
+            .build()
+            .expect("Failed to build sync server runtime");
+
+        rt.block_on(async move {
+            let listener = tokio::net::TcpListener::from_std(std_listener)
+                .expect("Failed to convert sync server listener");
+            axum::serve(listener, router)
+                .await
+                .expect("Sync HTTP server error");
+        });
     });
 
     Ok(state)
@@ -598,7 +727,7 @@ pub fn start_pairing(
     use rand::Rng;
 
     let code: String = format!("{:06}", rand::thread_rng().gen_range(0..1_000_000u32));
-    let expires_at = Utc::now() + chrono::Duration::seconds(60);
+    let expires_at = Utc::now() + chrono::Duration::seconds(120);
 
     *state
         .pairing_session
@@ -614,5 +743,88 @@ pub fn start_pairing(
         port: state.port,
         code,
         expires_at: expires_at.to_rfc3339(),
+        display_name: state.local_display_name.clone(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::schema::run_migrations;
+    use reqwest::StatusCode as HttpStatusCode;
+    use std::sync::{Arc, Mutex};
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn pull_push_returns_pairing_revoked_after_device_is_removed() {
+        let conn = Connection::open_in_memory().expect("open in-memory db");
+        run_migrations(&conn).expect("run migrations");
+        let conn = Arc::new(Mutex::new(conn));
+
+        let local_device_id = "desktop-1".to_string();
+        let mobile_device_id = "mobile-1".to_string();
+        let credential = "cred-1".to_string();
+        let now = Utc::now().to_rfc3339();
+
+        {
+            let db = conn.lock().expect("lock db");
+            db.execute(
+                "INSERT INTO sync_devices (id, display_name, is_local, created_at) VALUES (?1, ?2, 1, ?3)",
+                rusqlite::params![local_device_id, "Desktop", now],
+            )
+            .expect("insert local device");
+            db.execute(
+                "INSERT INTO sync_devices (id, display_name, is_local, credential, paired_at, created_at) VALUES (?1, ?2, 0, ?3, ?4, ?4)",
+                rusqlite::params![mobile_device_id, "Mobile", credential, now],
+            )
+            .expect("insert mobile device");
+            db.execute(
+                "DELETE FROM sync_devices WHERE id = ?1 AND is_local = 0",
+                rusqlite::params![mobile_device_id],
+            )
+            .expect("forget device");
+        }
+
+        let state = start_sync_server(conn, local_device_id.clone(), "Desktop".to_string())
+            .expect("start sync server");
+        let url = format!("http://127.0.0.1:{}/sync/pull-push", state.port);
+
+        let payload = serde_json::json!({
+            "mobileDeviceId": mobile_device_id,
+            "desktopDeviceId": local_device_id,
+            "authToken": credential,
+            "requestId": "req-1",
+            "requestTimestamp": Utc::now().to_rfc3339(),
+            "knownRemoteCursor": 0,
+            "knownAckedLocalCursor": 0,
+            "changes": [],
+            "tombstones": [],
+            "protocolVersion": PROTOCOL_VERSION
+        });
+
+        let client = reqwest::Client::new();
+        let mut last_err: Option<String> = None;
+        for _ in 0..10 {
+            match client.post(&url).json(&payload).send().await {
+                Ok(response) => {
+                    assert_eq!(response.status(), HttpStatusCode::UNAUTHORIZED);
+                    let body: serde_json::Value = response.json().await.expect("json body");
+                    assert_eq!(body.get("code").and_then(|v| v.as_str()), Some("PAIRING_REVOKED"));
+                    assert_eq!(
+                        body.get("message").and_then(|v| v.as_str()),
+                        Some("Unknown mobile device")
+                    );
+                    return;
+                }
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+            }
+        }
+
+        panic!(
+            "sync server did not respond in time: {}",
+            last_err.unwrap_or_else(|| "unknown error".to_string())
+        );
+    }
 }
