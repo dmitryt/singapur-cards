@@ -7,6 +7,7 @@
   - [`Cards`](./features/cards.md)
   - [`Collections`](./features/collections.md)
   - [`Practice`](./features/practice.md)
+  - [`Sync`](./features/sync.md)
   - [`Dictionaries`](./features/dictionaries.md)
   - [`Languages`](./features/languages.md)
   - [`User Profile`](./features/user-profile.md)

@@ -9,7 +9,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const language = useActiveLanguageStore((s) => s.language);
   const setLanguage = useActiveLanguageStore((s) => s.setLanguage);
-  const languageRows = useLanguages();
+  const { rows: languageRows } = useLanguages();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -36,6 +36,15 @@ export default function SettingsScreen() {
 
       <Text style={styles.section}>Learning language</Text>
       <Text style={styles.hint}>Cards and review use this language.</Text>
+      <Pressable
+        style={styles.navRow}
+        onPress={() => router.push('/languages')}
+        accessibilityRole="button"
+        accessibilityLabel="Languages"
+      >
+        <Text style={styles.navRowText}>Manage Languages</Text>
+        <Text style={styles.navRowChevron}>›</Text>
+      </Pressable>
       <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
         {languageRows.map((row) => (
           <Pressable

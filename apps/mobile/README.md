@@ -9,6 +9,10 @@ Singapur Cards Mobile helps you:
 - pair with the desktop app over local network
 - sync cards and collections with desktop
 
+## Preview
+
+![App Preview](./docs/AppRecording.mov.gif)
+
 > [!NOTE]
 > The app is designed to work offline during normal use. Local data is stored in on-device SQLite and can sync with desktop when both devices are available on the same LAN.
 

@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { type: 'link', label: 'Cards', path: '/', icon: 'albums', iconOutline: 'albums-outline' },
   { type: 'link', label: 'Collections', path: '/collections', icon: 'folder', iconOutline: 'folder-outline' },
   { type: 'separator' },
+  { type: 'link', label: 'Languages', path: '/languages', icon: 'language', iconOutline: 'language-outline' },
   { type: 'link', label: 'Settings', path: '/settings', icon: 'settings', iconOutline: 'settings-outline' },
 ];
 
