@@ -23,6 +23,10 @@ Singapur Cards lets you turn any ABBYY Lingvo `.dsl` dictionary into a personal 
 - **No cloud relay in v1** — sync is peer-to-peer on local network only.
 - **More details** — see [Sync feature docs](./docs/features/sync.md).
 
+### Synchronization Preview
+
+![Synchronization Preview](./assets/Synchronization.mov.gif)
+
 ## 📦 Apps
 
 | App | Description |
