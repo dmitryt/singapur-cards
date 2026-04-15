@@ -71,7 +71,7 @@
 - [x] T016 [US3] Implement error state rendering in `src/features/sync/DesktopSyncSection.tsx`: show a clear message (e.g. "Desktop sync is unavailable. The sync server may not have started correctly.") when `SyncView` is `error`; keep the rest of ProfilePage functional
 - [x] T021 [US3] Add structured auth error response for revoked/unknown devices in sync HTTP handlers (e.g. `PAIRING_REVOKED`) in `src-tauri/src/sync/server.rs`, while preserving HTTP 401 semantics
 - [x] T022 [US3] Add backend tests for post-forget sync rejection in `src-tauri/src/sync/server.rs` or `src-tauri/tests/`: after `sync_forget_device`, next pull-push from same mobile must return auth failure with machine-readable revocation code
-- [ ] T023 [US3] Document and verify mobile-side handling contract in spec/quickstart notes: on revocation auth failure, mobile clears pairing credentials, transitions to unpaired UI, and stops auto-sync retries until re-pair
+- [x] T023 [US3] Document and verify mobile-side handling contract in spec/quickstart notes: on revocation auth failure, mobile clears pairing credentials, transitions to unpaired UI, and stops auto-sync retries until re-pair
 
 **Checkpoint**: All three user stories are independently functional and persist correctly across restarts.
 
@@ -80,7 +80,7 @@
 ## Phase 5: Polish & Cross-Cutting Concerns
 
 - [x] T017 [P] Write Vitest test for `DesktopSyncSection` in `src/test/DesktopSyncSection.test.tsx`: mock `invoke` via `src/test/__mocks__`; cover on-mount idle/paired/error states, Start Pairing transition, countdown expiry returning to idle, and Forget flow removing the device
-- [ ] T018 Manually verify all acceptance scenarios from `spec.md` (US1 AC1–3, US2 AC1–6, US3 AC1–2) and the five edge cases (re-pairing replacement behavior, paired-state hides pairing actions, mobile remains paired until next failed sync after desktop forget, expiry notice, sync server error)
+- [x] T018 Manually verify all acceptance scenarios from `spec.md` (US1 AC1–3, US2 AC1–6, US3 AC1–2) and the five edge cases (re-pairing replacement behavior, paired-state hides pairing actions, mobile remains paired until next failed sync after desktop forget, expiry notice, sync server error)
 
 ---
 
