@@ -4,6 +4,10 @@
 
 Singapur Cards lets you turn any ABBYY Lingvo `.dsl` dictionary into a personal flashcard deck — no internet required. Import a dictionary, search headwords instantly, build your card collections, and drill vocabulary at your own pace with built-in review sessions.
 
+## 📛 Why "Singapur Cards"?
+
+The project name comes from a personal story: I studied German at a language school, and my group there was called "Singapur."
+
 ## ✨ Features
 
 - 📖 **Import DSL dictionaries** — load ABBYY Lingvo `.dsl` files from your local machine
