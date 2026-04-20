@@ -64,6 +64,7 @@ Then open in:
 - `npm run ios:run` - build and run native iOS app via `expo run:ios`
 - `npm run pod:install` - install iOS CocoaPods dependencies
 - `npm run web` - run Expo web target
+- `npm run test` - run the mobile test suite
 - `npm run db:seed` - seed a local development SQLite database
 - `npm run db:clean` - remove user-generated data from local SQLite DB
 - `npm run db:generate` - generate Drizzle migration artifacts
@@ -100,6 +101,12 @@ Examples:
 npm run db:seed -- --seed 42
 npm run db:seed -- --db ./.data/custom.db
 npm run db:clean -- --db ./.data/singapur_cards_mobile.db
+```
+
+Before opening a PR, run:
+
+```bash
+npm run test
 ```
 
 ## 🗂️ Project Layout
