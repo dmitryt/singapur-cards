@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,9 +8,16 @@ import { COLORS } from '../../theme';
 const DRAWER_WIDTH = 240;
 const ANIMATION_DURATION = 220;
 
-const NAV_ITEMS = [
-  { label: 'Cards', path: '/', icon: 'albums' as const, iconOutline: 'albums-outline' as const },
-  { label: 'Collections', path: '/collections', icon: 'folder' as const, iconOutline: 'folder-outline' as const },
+type NavItem =
+  | { type: 'link'; label: string; path: string; icon: React.ComponentProps<typeof Ionicons>['name']; iconOutline: React.ComponentProps<typeof Ionicons>['name'] }
+  | { type: 'separator' };
+
+const NAV_ITEMS: NavItem[] = [
+  { type: 'link', label: 'Cards', path: '/', icon: 'albums', iconOutline: 'albums-outline' },
+  { type: 'link', label: 'Collections', path: '/collections', icon: 'folder', iconOutline: 'folder-outline' },
+  { type: 'separator' },
+  { type: 'link', label: 'Languages', path: '/languages', icon: 'language', iconOutline: 'language-outline' },
+  { type: 'link', label: 'Settings', path: '/settings', icon: 'settings', iconOutline: 'settings-outline' },
 ];
 
 export function NavMenu() {
@@ -90,7 +97,10 @@ export function NavMenu() {
           ]}
         >
           <Text style={styles.drawerHeading}>Navigate</Text>
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.map((item, index) => {
+            if (item.type === 'separator') {
+              return <View key={`sep-${index}`} style={styles.separator} />;
+            }
             const active = pathname === item.path || (item.path === '/' && pathname === '');
             return (
               <TouchableOpacity
@@ -173,5 +183,11 @@ const styles = StyleSheet.create({
   navLabelActive: {
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.border,
+    marginVertical: 8,
+    marginHorizontal: 10,
   },
 });

@@ -171,6 +171,77 @@ CREATE TABLE IF NOT EXISTS custom_chat_models (
 );
 ```
 
+## Sync Metadata Tables
+
+Sync v1 introduces metadata tables used for trusted-device state and incremental replication.
+Canonical desktop source: `apps/desktop/src-tauri/src/db/schema.rs`.
+Mobile OpenSpec also defines a conceptual `sync_state` metadata table; desktop currently tracks equivalent runtime state through existing sync tables.
+
+### `sync_devices`
+
+```sql
+CREATE TABLE sync_devices (
+  id TEXT PRIMARY KEY NOT NULL,
+  display_name TEXT NOT NULL,
+  host TEXT,
+  port INTEGER,
+  is_local INTEGER NOT NULL,
+  credential TEXT,
+  last_sync_request_id TEXT,
+  paired_at TEXT,
+  last_sync_at TEXT,
+  created_at TEXT NOT NULL
+);
+```
+
+### `sync_changes`
+
+```sql
+CREATE TABLE sync_changes (
+  id TEXT PRIMARY KEY NOT NULL,
+  device_id TEXT NOT NULL,
+  table_name TEXT NOT NULL,
+  row_id TEXT NOT NULL,
+  op_type TEXT NOT NULL CHECK(op_type IN ('insert','update')),
+  logical_clock INTEGER NOT NULL,
+  payload_json TEXT NOT NULL,
+  request_id TEXT,
+  applied_at TEXT,
+  created_at TEXT NOT NULL
+);
+```
+
+### `sync_cursors`
+
+```sql
+CREATE TABLE sync_cursors (
+  peer_device_id TEXT PRIMARY KEY NOT NULL,
+  last_remote_logical_clock INTEGER NOT NULL DEFAULT 0,
+  last_acknowledged_local_logical_clock INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
+```
+
+### `sync_tombstones`
+
+```sql
+CREATE TABLE sync_tombstones (
+  id TEXT PRIMARY KEY NOT NULL,
+  device_id TEXT NOT NULL,
+  table_name TEXT NOT NULL,
+  row_id TEXT NOT NULL,
+  logical_clock INTEGER NOT NULL,
+  request_id TEXT,
+  deleted_at TEXT NOT NULL
+);
+```
+
+Notes:
+- Local creates/updates append records to `sync_changes`.
+- Local deletes append records to `sync_tombstones`.
+- Per-peer replication progress is tracked in `sync_cursors`.
+- `sync_changes` and `sync_tombstones` each use indexes on `(device_id, logical_clock)` and `(table_name, row_id)` for ordered replication and lookups.
+
 ## Indexes
 
 ```sql

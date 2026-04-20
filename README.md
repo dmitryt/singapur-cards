@@ -14,21 +14,38 @@ Singapur Cards lets you turn any ABBYY Lingvo `.dsl` dictionary into a personal 
 - 🤖 **AI Assistant** — built-in chat assistant to help you learn; connects to [OpenRouter](https://openrouter.ai) for access to a wide range of AI models
 - ✈️ **Fully offline** — all data stays local in SQLite; no account or network needed (except for AI features)
 
+## 🔄 Synchronization
+
+- **Desktop + Mobile sync on LAN** — keep learning data aligned between your desktop and trusted mobile devices on the same network.
+- **Secure pairing flow** — pairing uses a short-lived 6-digit code (60 seconds) plus desktop address (`host:port`).
+- **Trusted device management** — desktop shows paired devices, last sync time, and lets you forget/revoke devices.
+- **Local-first sync metadata** — changes, cursors, and tombstones are tracked in SQLite for resumable sync sessions.
+- **No cloud relay in v1** — sync is peer-to-peer on local network only.
+- **More details** — see [Sync feature docs](./docs/features/sync.md).
+
+### Synchronization Preview
+
+![Synchronization Preview](./assets/Synchronization.mov.gif)
+
 ## 📦 Apps
 
 | App | Description |
 |-----|-------------|
 | [🖥️ Desktop](./apps/desktop) | Native desktop client built with Tauri v2, React, and SQLite |
-| 📱 Mobile | Native mobile client — _in progress_ |
+| [📱 Mobile](./apps/mobile) | Native mobile client |
 
 ## 🛠️ Tech Stack
 
-- **Desktop:** Tauri v2 (Rust) + React + TypeScript + Vite
-- **UI:** Semantic UI React + styled-components
-- **State:** Zustand
-- **Database:** SQLite (rusqlite + Tauri SQL plugin)
-- **AI:** @assistant-ui/react + OpenRouter (configurable model backends)
-- **Testing:** Vitest + Rust unit/integration tests
+- **Desktop app:** Tauri v2 (Rust) + React + TypeScript + Vite
+- **Desktop UI:** Semantic UI React + styled-components
+- **Desktop state:** Zustand
+- **Desktop database:** SQLite (rusqlite + Tauri SQL plugin)
+- **Desktop AI:** @assistant-ui/react + OpenRouter (configurable model backends)
+- **Desktop testing:** Vitest + Rust unit/integration tests
+- **Mobile app:** Expo + React Native + TypeScript + Expo Router
+- **Mobile state:** Zustand
+- **Mobile database:** SQLite (`expo-sqlite`) + Drizzle ORM
+- **Mobile secure storage:** `expo-secure-store`
 
 ## 📚 Documentation
 
@@ -37,3 +54,4 @@ Singapur Cards lets you turn any ABBYY Lingvo `.dsl` dictionary into a personal 
 ## 🚀 Getting Started
 
 See the [Desktop app README](./apps/desktop/README.md) for setup instructions.
+See the [Mobile app README](./apps/mobile/README.md) for setup instructions.

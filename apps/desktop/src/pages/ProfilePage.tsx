@@ -5,6 +5,7 @@ import { Dropdown } from "../components/atoms";
 import type { DropdownProps } from "semantic-ui-react";
 import PageContainer from "../components/templates/PageContainer";
 import { saveApiCredential, deleteApiCredential } from "../lib/tauri/commands";
+import { DesktopSyncSection } from "../features/sync/DesktopSyncSection";
 
 const Section = styled.div`
   max-width: 400px;
@@ -143,6 +144,8 @@ function ProfilePage() {
           disabled={languages.length === 0}
         />
       </Section>
+
+      <DesktopSyncSection />
 
       <Section>
         <Label>OpenRouter API Key</Label>

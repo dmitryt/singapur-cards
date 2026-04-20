@@ -475,6 +475,58 @@ export async function deleteCustomModel(
   return invoke<CommandResult<{ ok: boolean }>>("delete_custom_model", { input: { name } });
 }
 
+// ── Sync types ────────────────────────────────────────────────────────────────
+
+export type PairingModeInfo = {
+  host: string;
+  port: number;
+  code: string;
+  expiresAt: string;
+  displayName: string;
+};
+
+export type PairedDevice = {
+  id: string;
+  displayName: string;
+  pairedAt: string | null;
+  lastSyncAt: string | null;
+};
+
+/** Payload from `sync_get_paired_devices`. */
+export type PairedDevicesSnapshot = {
+  devices: PairedDevice[];
+  firstSuccessfulSyncAt: string | null;
+};
+
+// ── Sync command wrappers ─────────────────────────────────────────────────────
+
+export async function syncStartPairing(): Promise<CommandResult<PairingModeInfo>> {
+  try {
+    const data = await invoke<PairingModeInfo>("sync_start_pairing");
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, code: "UNEXPECTED_ERROR", message: String(e) };
+  }
+}
+
+export async function syncGetPairedDevices(): Promise<CommandResult<PairedDevicesSnapshot>> {
+  try {
+    const data = await invoke<PairedDevicesSnapshot>("sync_get_paired_devices");
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, code: "UNEXPECTED_ERROR", message: String(e) };
+  }
+}
+
+export async function syncForgetDevice(deviceId: string): Promise<CommandResult<void>> {
+  try {
+    await invoke<void>("sync_forget_device", { deviceId });
+    return { ok: true, data: undefined };
+  } catch (e) {
+    return { ok: false, code: "UNEXPECTED_ERROR", message: String(e) };
+  }
+}
+
 // ── Credential command wrappers ───────────────────────────────────────────────
 
 export type SaveApiCredentialInput = {

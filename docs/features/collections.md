@@ -11,7 +11,7 @@
   - Support stable card membership management.
   - Keep card records intact when a collection is removed.
 - Non-Goals:
-  - Review run-time sequencing (covered in [Reviews](./reviews.md)).
+  - Practice session sequencing (covered in [Practice](./practice.md)).
   - Card field editing (covered in [Cards](./cards.md)).
 
 #### 3. User Stories

@@ -12,7 +12,7 @@
   - Prevent duplicate cards for the same vocabulary target.
 - Non-Goals:
   - Collection lifecycle management (covered in [Collections](./collections.md)).
-  - Review-session ordering and progression logic (covered in [Reviews](./reviews.md)).
+  - Practice session ordering and progression logic (covered in [Practice](./practice.md)).
 
 #### 3. User Stories
 - A learner saves a headword as a new card with prefilled answer data.

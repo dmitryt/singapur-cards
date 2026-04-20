@@ -4,10 +4,13 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "EXPO_PUBLIC_DEV_SQLITE_DIR=$PWD/.data expo start --android",
+    "ios": "EXPO_PUBLIC_DEV_SQLITE_DIR=$PWD/.data expo start --ios",
+    "ios:run": "env -u GEM_HOME -u GEM_PATH -u RUBY_VERSION -u MY_RUBY_HOME -u IRBRC expo run:ios",
+    "pod:install": "env -u GEM_HOME -u GEM_PATH -u RUBY_VERSION -u MY_RUBY_HOME -u IRBRC pod install --project-directory=ios",
     "web": "expo start --web",
     "db:seed": "tsx scripts/seed-dev-db.ts",
+    "db:clean": "tsx scripts/clean-user-data.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
@@ -17,6 +20,7 @@
     "expo-constants": "~18.0.13",
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.23",
+    "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",

@@ -9,7 +9,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const language = useActiveLanguageStore((s) => s.language);
   const setLanguage = useActiveLanguageStore((s) => s.setLanguage);
-  const languageRows = useLanguages();
+  const { rows: languageRows } = useLanguages();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -23,8 +23,28 @@ export default function SettingsScreen() {
         <Text style={styles.backText}>← Back</Text>
       </Pressable>
       <Text style={styles.title}>Settings</Text>
+      <Text style={styles.section}>Desktop Sync</Text>
+      <Pressable
+        style={styles.navRow}
+        onPress={() => router.push('/sync')}
+        accessibilityRole="button"
+        accessibilityLabel="Desktop Sync"
+      >
+        <Text style={styles.navRowText}>Desktop Sync</Text>
+        <Text style={styles.navRowChevron}>›</Text>
+      </Pressable>
+
       <Text style={styles.section}>Learning language</Text>
       <Text style={styles.hint}>Cards and review use this language.</Text>
+      <Pressable
+        style={styles.navRow}
+        onPress={() => router.push('/languages')}
+        accessibilityRole="button"
+        accessibilityLabel="Languages"
+      >
+        <Text style={styles.navRowText}>Manage Languages</Text>
+        <Text style={styles.navRowChevron}>›</Text>
+      </Pressable>
       <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
         {languageRows.map((row) => (
           <Pressable
@@ -78,6 +98,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 20,
   },
+  navRow: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  navRowText: { fontSize: 16, color: COLORS.text },
+  navRowChevron: { fontSize: 20, color: COLORS.textSecondary },
   scroll: {
     flex: 1,
   },

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
-import { appMeta } from '../db/schema';
+import { appMeta, languages } from '../db/schema';
 
 export const ACTIVE_LEARNING_LANGUAGE_KEY = 'active_learning_language';
 export const DEFAULT_ACTIVE_LANGUAGE = 'en';
@@ -32,15 +32,34 @@ export const useActiveLanguageStore = create<ActiveLanguageState>((set) => ({
       set({ language: DEFAULT_ACTIVE_LANGUAGE, hydrated: true });
       return;
     }
-    const lang =
+    const requestedLang =
       row.value && row.value.length > 0 ? row.value : DEFAULT_ACTIVE_LANGUAGE;
-    if (lang !== row.value) {
+
+    const requestedExists = await db
+      .select({ code: languages.code })
+      .from(languages)
+      .where(eq(languages.code, requestedLang))
+      .limit(1);
+
+    let resolvedLang = requestedLang;
+    if (!requestedExists[0]) {
+      const firstLanguage = await db
+        .select({ code: languages.code })
+        .from(languages)
+        .limit(1);
+      if (firstLanguage[0]?.code) {
+        resolvedLang = firstLanguage[0].code;
+      }
+    }
+
+    if (resolvedLang !== row.value) {
       await db
         .update(appMeta)
-        .set({ value: lang })
+        .set({ value: resolvedLang })
         .where(eq(appMeta.key, ACTIVE_LEARNING_LANGUAGE_KEY));
     }
-    set({ language: lang, hydrated: true });
+
+    set({ language: resolvedLang, hydrated: true });
   },
 
   setLanguage: async (code: string) => {

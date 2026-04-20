@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, useWindowDimensions } from 'react-native';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 interface FlipCardProps {
   front: React.ReactNode;
@@ -68,11 +68,6 @@ export function FlipCard({
     extrapolate: 'clamp',
   });
 
-  const onGestureEvent = Animated.event(
-    [{ nativeEvent: { translationX: dragX, translationY: dragY } }],
-    { useNativeDriver: true },
-  );
-
   const snapBack = () => {
     Animated.parallel([
       Animated.spring(dragX, { toValue: 0, useNativeDriver: true, friction: 8, tension: 40 }),
@@ -80,39 +75,50 @@ export function FlipCard({
     ]).start();
   };
 
-  const onHandlerStateChange = ({ nativeEvent }: any) => {
-    if (
-      nativeEvent.state === State.CANCELLED ||
-      nativeEvent.state === State.FAILED
-    ) {
-      snapBack();
-      return;
-    }
+  const flyOff = (direction: 'learned' | 'not_learned') => {
+    const targetX = direction === 'learned' ? screenWidth * 1.5 : -screenWidth * 1.5;
+    Animated.parallel([
+      Animated.timing(dragX, { toValue: targetX, useNativeDriver: true, duration: 300 }),
+      Animated.timing(dragY, { toValue: 0, useNativeDriver: true, duration: 300 }),
+    ]).start(() => {
+      onResult?.(direction);
+    });
+  };
 
-    if (nativeEvent.state !== State.END) return;
-
-    const tx: number = nativeEvent.translationX;
-    const ty: number = nativeEvent.translationY;
+  const handleGestureEnd = (tx: number, ty: number) => {
     const dist = Math.sqrt(tx * tx + ty * ty);
 
     if (dist < 10) {
       // Tap — toggle flip on either face
       onFlip?.();
+      snapBack();
     } else if (isFlippedRef.current && !recordingRef.current && Math.abs(tx) >= THRESHOLD) {
-      // Swipe past threshold on back face — commit result
-      onResult?.(tx > 0 ? 'learned' : 'not_learned');
+      // Swipe past threshold on back face — fly off then commit result
+      flyOff(tx > 0 ? 'learned' : 'not_learned');
+    } else {
+      snapBack();
     }
-
-    snapBack();
   };
 
+  const panGesture = Gesture.Pan()
+    .enabled(!recording)
+    .minDistance(0)
+    .runOnJS(true)
+    .onUpdate((event) => {
+      dragX.setValue(event.translationX);
+      dragY.setValue(event.translationY);
+    })
+    .onEnd((event) => {
+      handleGestureEnd(event.translationX, event.translationY);
+    })
+    .onFinalize((_, success) => {
+      if (!success) {
+        snapBack();
+      }
+    });
+
   return (
-    <PanGestureHandler
-      onGestureEvent={onGestureEvent}
-      onHandlerStateChange={onHandlerStateChange}
-      enabled={!recording}
-      minDist={0}
-    >
+    <GestureDetector gesture={panGesture}>
       <Animated.View
         style={[
           styles.container,
@@ -153,12 +159,13 @@ export function FlipCard({
           />
         </Animated.View>
       </Animated.View>
-    </PanGestureHandler>
+    </GestureDetector>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
     minHeight: 200,
@@ -169,6 +176,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   face: {
+    flex: 1,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',

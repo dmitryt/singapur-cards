@@ -1,0 +1,144 @@
+pub mod backfill;
+pub mod server;
+pub mod types;
+
+// `sync_state` (see `db/schema.rs`) holds desktop-only UX fields such as `first_successful_sync_at`
+// for the first-sync merge hint, aligned with the mobile app.
+
+// TODO: Add a desktop sync UI panel in ProfilePage (or a dedicated SyncPage).
+// The Tauri backend exposes three commands already:
+//   - sync_start_pairing   → shows host, port, and 6-digit code to display to the user
+//   - sync_get_paired_devices → lists trusted mobile devices
+//   - sync_forget_device   → removes a trusted mobile device
+// The frontend just needs a Settings → Desktop Sync section that calls them.
+// Suggested flow:
+//   1. "Start pairing" button → calls sync_start_pairing → shows host:port + code for 60 s
+//   2. List of paired mobile devices with last-sync time
+//   3. "Forget" button per device
+// See: src/pages/ProfilePage.tsx, src/App.tsx (add /sync route if desired)
+
+use std::net::IpAddr;
+
+use tauri::State;
+
+use crate::state::SyncHandle;
+use server::start_pairing;
+use types::PairingModeInfo;
+
+/// Tauri command: start pairing mode. Returns host, port, and 6-digit code for display.
+#[tauri::command]
+pub fn sync_start_pairing(sync: State<'_, SyncHandle>) -> Result<PairingModeInfo, String> {
+    let state = sync.0.as_ref().ok_or("Sync server not initialized")?;
+    let host = get_local_ip().unwrap_or_else(|| "127.0.0.1".to_string());
+    start_pairing(state, host)
+}
+
+/// Tauri command: get paired mobile devices and merge-hint state.
+#[tauri::command]
+pub fn sync_get_paired_devices(
+    sync: State<'_, SyncHandle>,
+) -> Result<serde_json::Value, String> {
+    let state = sync.0.as_ref().ok_or("Sync server not initialized")?;
+    let conn = state.conn.lock().map_err(|_| "DB lock poisoned")?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, display_name, paired_at, last_sync_at
+             FROM sync_devices WHERE is_local = 0",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let devices = stmt
+        .query_map([], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "displayName": row.get::<_, String>(1)?,
+                "pairedAt": row.get::<_, Option<String>>(2)?,
+                "lastSyncAt": row.get::<_, Option<String>>(3)?,
+            }))
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    let first_successful_sync_at: Option<String> = match conn.query_row(
+        "SELECT first_successful_sync_at FROM sync_state WHERE id = 'local'",
+        [],
+        |row| row.get::<_, Option<String>>(0),
+    ) {
+        Ok(v) => v,
+        Err(rusqlite::Error::QueryReturnedNoRows) => None,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    Ok(serde_json::json!({
+        "devices": devices,
+        "firstSuccessfulSyncAt": first_successful_sync_at,
+    }))
+}
+
+/// Tauri command: forget a paired mobile device.
+#[tauri::command]
+pub fn sync_forget_device(
+    sync: State<'_, SyncHandle>,
+    device_id: String,
+) -> Result<(), String> {
+    let state = sync.0.as_ref().ok_or("Sync server not initialized")?;
+    let conn = state.conn.lock().map_err(|_| "DB lock poisoned")?;
+    conn.execute(
+        "DELETE FROM sync_devices WHERE id = ?1 AND is_local = 0",
+        rusqlite::params![device_id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let remaining: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sync_devices WHERE is_local = 0",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    if remaining == 0 {
+        let _ = conn.execute(
+            "UPDATE sync_state SET first_successful_sync_at = NULL WHERE id = 'local'",
+            [],
+        );
+    }
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Helper: get the machine's primary LAN IP
+// ---------------------------------------------------------------------------
+
+fn get_local_ip() -> Option<String> {
+    // Preferred path: inspect local network interfaces directly and pick a
+    // private IPv4 first (best UX for same-LAN pairing).
+    if let Ok(addrs) = local_ip_address::list_afinet_netifas() {
+        for (_, ip) in addrs {
+            if let IpAddr::V4(v4) = ip {
+                if !v4.is_loopback() && !v4.is_link_local() && v4.is_private() {
+                    return Some(v4.to_string());
+                }
+            }
+        }
+    }
+
+    // Fallback: use any non-loopback IPv4 from local_ip().
+    if let Ok(ip) = local_ip_address::local_ip() {
+        if let IpAddr::V4(v4) = ip {
+            if !v4.is_loopback() && !v4.is_link_local() {
+                return Some(v4.to_string());
+            }
+        }
+    }
+
+    // Fallback: UDP route probing to pick the primary outbound interface.
+    let socket = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("8.8.8.8:80").ok()?;
+    let addr = socket.local_addr().ok()?;
+    match addr.ip() {
+        IpAddr::V4(ip) if !ip.is_loopback() => Some(ip.to_string()),
+        _ => None,
+    }
+}
