@@ -49,6 +49,8 @@ export interface SyncStatusState {
 type SyncStoreState = {
   pairedDesktop: PairedDesktop | null;
   status: SyncStatusState;
+  /** ISO timestamp after first successful sync this trust period; drives first-sync merge hint. */
+  firstSuccessfulSyncAt: string | null;
   syncing: boolean;
   hydrated: boolean;
   hydrate: () => Promise<void>;
@@ -67,6 +69,10 @@ function generateRequestId(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function isPairingRevokedError(err: unknown): err is SyncClientError {
+  return err instanceof SyncClientError && err.code === 'PAIRING_REVOKED';
 }
 
 async function ensureLocalDevice(deviceId: string): Promise<void> {
@@ -92,6 +98,7 @@ async function ensureLocalDevice(deviceId: string): Promise<void> {
 export const useSyncStore = create<SyncStoreState>((set, get) => ({
   pairedDesktop: null,
   status: { lastSyncAt: null, lastSyncResult: null, lastSyncError: null },
+  firstSuccessfulSyncAt: null,
   syncing: false,
   hydrated: false,
 
@@ -101,8 +108,9 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
 
     const stateRows = await db.select().from(syncState).limit(1);
     const row = stateRows[0];
+    const firstSuccessfulSyncAt = row?.firstSuccessfulSyncAt ?? null;
     if (!row?.pairedDesktopId) {
-      set({ hydrated: true });
+      set({ hydrated: true, firstSuccessfulSyncAt });
       return;
     }
 
@@ -113,7 +121,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
       .limit(1);
     const desktop = deviceRows[0];
     if (!desktop?.host || !desktop.port) {
-      set({ hydrated: true });
+      set({ hydrated: true, firstSuccessfulSyncAt });
       return;
     }
 
@@ -131,6 +139,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
         lastSyncResult: row.lastSyncResult ?? null,
         lastSyncError: row.lastSyncError ?? null,
       },
+      firstSuccessfulSyncAt,
       hydrated: true,
     });
     // Best-effort probe: on app reload, detect revoked pairing quickly.
@@ -151,6 +160,25 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
 
     const res = await completePairing(baseUrl, req);
     const now = new Date().toISOString();
+
+    // One paired desktop: switching to a new peer drops the previous trust + cursor.
+    const priorState = await db.select().from(syncState).limit(1);
+    const previousDesktopId = priorState[0]?.pairedDesktopId ?? null;
+    if (previousDesktopId && previousDesktopId !== res.desktopDeviceId) {
+      try {
+        await deleteSyncCredential(previousDesktopId);
+      } catch {
+        // best-effort
+      }
+      try {
+        await db.delete(syncCursors).where(eq(syncCursors.peerDeviceId, previousDesktopId));
+        await db
+          .delete(syncDevices)
+          .where(and(eq(syncDevices.id, previousDesktopId), eq(syncDevices.isLocal, false)));
+      } catch {
+        // best-effort
+      }
+    }
 
     // Upsert desktop peer metadata
     const existing = await db
@@ -183,12 +211,17 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
     if (stateRows.length > 0) {
       await db
         .update(syncState)
-        .set({ pairedDesktopId: res.desktopDeviceId, updatedAt: now })
+        .set({
+          pairedDesktopId: res.desktopDeviceId,
+          firstSuccessfulSyncAt: null,
+          updatedAt: now,
+        })
         .where(eq(syncState.id, 'local'));
     } else {
       await db.insert(syncState).values({
         id: 'local',
         pairedDesktopId: res.desktopDeviceId,
+        firstSuccessfulSyncAt: null,
         updatedAt: now,
       });
     }
@@ -229,6 +262,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
         lastSyncAt: null,
       },
       status: { lastSyncAt: null, lastSyncResult: null, lastSyncError: null },
+      firstSuccessfulSyncAt: null,
     });
   },
 
@@ -257,12 +291,17 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
     await deleteSyncCredential(pairedDesktop.id);
     await db
       .update(syncState)
-      .set({ pairedDesktopId: null, updatedAt: now })
+      .set({
+        pairedDesktopId: null,
+        firstSuccessfulSyncAt: null,
+        updatedAt: now,
+      })
       .where(eq(syncState.id, 'local'));
 
     set({
       pairedDesktop: null,
       status: { lastSyncAt: null, lastSyncResult: null, lastSyncError: null },
+      firstSuccessfulSyncAt: null,
     });
   },
 
@@ -392,6 +431,13 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
         .set({ lastSyncAt: now })
         .where(eq(syncDevices.id, pairedDesktop.id));
 
+      const priorFssRows = await db
+        .select({ f: syncState.firstSuccessfulSyncAt })
+        .from(syncState)
+        .where(eq(syncState.id, 'local'))
+        .limit(1);
+      const firstSuccessAt = priorFssRows[0]?.f ?? now;
+
       // Update sync_state
       await db
         .update(syncState)
@@ -400,6 +446,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
           lastSyncResult: 'success',
           lastSyncError: null,
           lastRequestId: requestId,
+          firstSuccessfulSyncAt: firstSuccessAt,
           updatedAt: now,
         })
         .where(eq(syncState.id, 'local'));
@@ -426,6 +473,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
         syncing: false,
         pairedDesktop: { ...pairedDesktop, lastSyncAt: now },
         status: { lastSyncAt: now, lastSyncResult: 'success', lastSyncError: null },
+        firstSuccessfulSyncAt: firstSuccessAt,
       });
 
       // Refresh list stores so UI reflects newly synced rows without needing
@@ -434,7 +482,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
       const activeLanguage = useActiveLanguageStore.getState().language;
       try {
         await Promise.all([
-          useCollectionsStore.getState().load(),
+          useCollectionsStore.getState().load(true),
           useCardsStore.getState().load(activeCollectionId, activeLanguage),
         ]);
 
@@ -452,22 +500,25 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
               } catch {
               }
     } catch (err) {
-      const isRevokedPairing =
-        err instanceof SyncClientError &&
-        err.status === 401 &&
-        err.code === 'PAIRING_REVOKED';
-
-      if (isRevokedPairing) {
+      if (isPairingRevokedError(err)) {
         const now = new Date().toISOString();
+        const revokedMessage =
+          'This desktop removed pairing. Please pair again when you are ready.';
+
         try {
           await deleteSyncCredential(pairedDesktop.id);
+          await db.delete(syncCursors).where(eq(syncCursors.peerDeviceId, pairedDesktop.id));
+          await db
+            .delete(syncDevices)
+            .where(and(eq(syncDevices.id, pairedDesktop.id), eq(syncDevices.isLocal, false)));
           await db
             .update(syncState)
             .set({
               pairedDesktopId: null,
+              firstSuccessfulSyncAt: null,
               lastSyncAt: now,
               lastSyncResult: 'failure',
-              lastSyncError: 'Pairing revoked on desktop. Please pair again.',
+              lastSyncError: revokedMessage,
               updatedAt: now,
             })
             .where(eq(syncState.id, 'local'));
@@ -478,10 +529,11 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
         set({
           syncing: false,
           pairedDesktop: null,
+          firstSuccessfulSyncAt: null,
           status: {
             lastSyncAt: now,
             lastSyncResult: 'failure',
-            lastSyncError: 'Pairing revoked on desktop. Please pair again.',
+            lastSyncError: revokedMessage,
           },
         });
         return;

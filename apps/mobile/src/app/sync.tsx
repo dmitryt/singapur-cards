@@ -230,6 +230,8 @@ export default function SyncScreen() {
   const router = useRouter();
   const pairedDesktop = useSyncStore((s) => s.pairedDesktop);
   const hydrated = useSyncStore((s) => s.hydrated);
+  const firstSuccessfulSyncAt = useSyncStore((s) => s.firstSuccessfulSyncAt);
+  const showMergeHint = hydrated && !firstSuccessfulSyncAt;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -244,6 +246,12 @@ export default function SyncScreen() {
       </Pressable>
 
       <Text style={styles.title}>Desktop Sync</Text>
+      {showMergeHint ? (
+        <Text style={styles.mergeHint}>
+          First sync merges both devices automatically. If each side already has a lot of data, clear
+          study data on one device first for a predictable library.
+        </Text>
+      ) : null}
 
       {!hydrated ? (
         <View style={styles.centered}>
@@ -272,6 +280,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: COLORS.text,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  mergeHint: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
     paddingHorizontal: 16,
     marginBottom: 16,
   },

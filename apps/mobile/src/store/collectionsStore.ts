@@ -15,7 +15,7 @@ export type Collection = typeof collections.$inferSelect;
 type CollectionsState = {
   collections: Collection[];
   loaded: boolean;
-  load: () => Promise<void>;
+  load: (force?: boolean) => Promise<void>;
   create: (name: string) => Promise<void>;
   rename: (id: string, name: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -25,8 +25,8 @@ export const useCollectionsStore = create<CollectionsState>((set, get) => ({
   collections: [],
   loaded: false,
 
-  load: async () => {
-    if (get().loaded) return;
+  load: async (force = false) => {
+    if (get().loaded && !force) return;
     try {
       const result = await db.select().from(collections);
       set({ collections: result, loaded: true });

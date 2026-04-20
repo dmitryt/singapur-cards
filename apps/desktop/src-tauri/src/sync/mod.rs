@@ -2,12 +2,8 @@ pub mod backfill;
 pub mod server;
 pub mod types;
 
-// TODO: Add a `sync_state` table to the desktop schema (mirrors the mobile `sync_state` table).
-// This would give the desktop a persistent record of pairing status across restarts — right now
-// the pairing session is in-memory only. The desktop can infer "I have a paired peer" from
-// `sync_devices WHERE is_local = 0`, but an explicit `sync_state` row would also hold last-sync
-// timestamp and last-error for display in the UI.
-// See: src/db/schema.rs → run_migrations()
+// `sync_state` (see `db/schema.rs`) holds desktop-only UX fields such as `first_successful_sync_at`
+// for the first-sync merge hint, aligned with the mobile app.
 
 // TODO: Add a desktop sync UI panel in ProfilePage (or a dedicated SyncPage).
 // The Tauri backend exposes three commands already:
@@ -37,11 +33,11 @@ pub fn sync_start_pairing(sync: State<'_, SyncHandle>) -> Result<PairingModeInfo
     start_pairing(state, host)
 }
 
-/// Tauri command: get paired mobile devices.
+/// Tauri command: get paired mobile devices and merge-hint state.
 #[tauri::command]
 pub fn sync_get_paired_devices(
     sync: State<'_, SyncHandle>,
-) -> Result<Vec<serde_json::Value>, String> {
+) -> Result<serde_json::Value, String> {
     let state = sync.0.as_ref().ok_or("Sync server not initialized")?;
     let conn = state.conn.lock().map_err(|_| "DB lock poisoned")?;
     let mut stmt = conn
@@ -64,7 +60,20 @@ pub fn sync_get_paired_devices(
         .collect::<std::result::Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
-    Ok(devices)
+    let first_successful_sync_at: Option<String> = match conn.query_row(
+        "SELECT first_successful_sync_at FROM sync_state WHERE id = 'local'",
+        [],
+        |row| row.get::<_, Option<String>>(0),
+    ) {
+        Ok(v) => v,
+        Err(rusqlite::Error::QueryReturnedNoRows) => None,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    Ok(serde_json::json!({
+        "devices": devices,
+        "firstSuccessfulSyncAt": first_successful_sync_at,
+    }))
 }
 
 /// Tauri command: forget a paired mobile device.
@@ -80,6 +89,21 @@ pub fn sync_forget_device(
         rusqlite::params![device_id],
     )
     .map_err(|e| e.to_string())?;
+
+    let remaining: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sync_devices WHERE is_local = 0",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    if remaining == 0 {
+        let _ = conn.execute(
+            "UPDATE sync_state SET first_successful_sync_at = NULL WHERE id = 'local'",
+            [],
+        );
+    }
+
     Ok(())
 }
 

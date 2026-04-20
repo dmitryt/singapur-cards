@@ -14,7 +14,12 @@ import {
 type SyncView =
   | { kind: "idle"; expiredNotice?: boolean }
   | { kind: "pairing"; info: PairingModeInfo; secondsRemaining: number }
-  | { kind: "paired"; devices: PairedDevice[] }
+  | {
+      kind: "paired";
+      devices: PairedDevice[];
+      /** From `sync_state.first_successful_sync_at`; when set, first-sync merge hint stays hidden. */
+      firstSuccessfulSyncAt: string | null;
+    }
   | { kind: "error"; message: string };
 
 // ── Styled components ─────────────────────────────────────────────────────────
@@ -139,6 +144,9 @@ const DeviceSync = styled.span`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
+const MERGE_HINT =
+  "First sync merges both devices automatically. If each side already has a lot of data, clear study data on one device first for a predictable library.";
+
 // ── CopyIcon component ────────────────────────────────────────────────────────
 
 function CopyIcon({ text, title }: { text: string; title?: string }) {
@@ -196,8 +204,12 @@ export function DesktopSyncSection() {
     syncGetPairedDevices().then((result) => {
       if (!result.ok) {
         setView({ kind: "error", message: result.message });
-      } else if (result.data.length >= 1) {
-        setView({ kind: "paired", devices: result.data });
+      } else if (result.data.devices.length >= 1) {
+        setView({
+          kind: "paired",
+          devices: result.data.devices,
+          firstSuccessfulSyncAt: result.data.firstSuccessfulSyncAt ?? null,
+        });
       } else {
         setView({ kind: "idle" });
       }
@@ -207,6 +219,24 @@ export function DesktopSyncSection() {
       clearAllIntervals();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After pairing, poll until the first successful pull-push sets `first_successful_sync_at` on desktop.
+  useEffect(() => {
+    if (view.kind !== "paired") return;
+    if (view.firstSuccessfulSyncAt) return;
+
+    const id = setInterval(async () => {
+      const r = await syncGetPairedDevices();
+      if (!r.ok) return;
+      setView({
+        kind: "paired",
+        devices: r.data.devices,
+        firstSuccessfulSyncAt: r.data.firstSuccessfulSyncAt ?? null,
+      });
+    }, 2000);
+
+    return () => clearInterval(id);
+  }, [view.kind, view.kind === "paired" ? view.firstSuccessfulSyncAt : null]);
 
   // ── Idle view ────────────────────────────────────────────────────────────────
 
@@ -225,7 +255,7 @@ export function DesktopSyncSection() {
     );
 
     const preResult = await syncGetPairedDevices();
-    const preCount = preResult.ok ? preResult.data.length : 0;
+    const preCount = preResult.ok ? preResult.data.devices.length : 0;
 
     setView({ kind: "pairing", info, secondsRemaining });
 
@@ -247,9 +277,13 @@ export function DesktopSyncSection() {
     // 2s polling interval
     pollingIntervalRef.current = setInterval(async () => {
       const pollResult = await syncGetPairedDevices();
-      if (pollResult.ok && pollResult.data.length > preCount) {
+      if (pollResult.ok && pollResult.data.devices.length > preCount) {
         clearAllIntervals();
-        setView({ kind: "paired", devices: pollResult.data });
+        setView({
+          kind: "paired",
+          devices: pollResult.data.devices,
+          firstSuccessfulSyncAt: pollResult.data.firstSuccessfulSyncAt ?? null,
+        });
       }
     }, 2000);
   }
@@ -266,10 +300,14 @@ export function DesktopSyncSection() {
     const result = await syncGetPairedDevices();
     if (!result.ok) {
       setView({ kind: "error", message: result.message });
-    } else if (result.data.length === 0) {
+    } else if (result.data.devices.length === 0) {
       setView({ kind: "idle" });
     } else {
-      setView({ kind: "paired", devices: result.data });
+      setView({
+        kind: "paired",
+        devices: result.data.devices,
+        firstSuccessfulSyncAt: result.data.firstSuccessfulSyncAt ?? null,
+      });
     }
   }
 
@@ -287,6 +325,7 @@ export function DesktopSyncSection() {
             </StatusText>
           )}
           <StatusText>Pair a mobile device to sync your flashcards.</StatusText>
+          <StatusText style={{ marginTop: "10px", lineHeight: 1.45 }}>{MERGE_HINT}</StatusText>
           <Button style={{ marginTop: "8px" }} onClick={handleStartPairing}>
             Start Pairing
           </Button>
@@ -316,7 +355,11 @@ export function DesktopSyncSection() {
           {view.devices.length === 0 ? (
             <StatusText>No paired devices.</StatusText>
           ) : (
-            view.devices.map((device) => (
+            <>
+              {!view.firstSuccessfulSyncAt ? (
+                <StatusText style={{ marginBottom: "12px", lineHeight: 1.45 }}>{MERGE_HINT}</StatusText>
+              ) : null}
+              {view.devices.map((device) => (
               <DeviceRow key={device.id}>
                 <DeviceInfo>
                   <DeviceName>{device.displayName}</DeviceName>
@@ -330,7 +373,8 @@ export function DesktopSyncSection() {
                   Forget
                 </Button>
               </DeviceRow>
-            ))
+              ))}
+            </>
           )}
         </>
       )}

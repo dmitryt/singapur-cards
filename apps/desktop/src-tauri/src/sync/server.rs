@@ -176,6 +176,15 @@ async fn handle_pairing_complete(
              VALUES (?1, 0, 0, ?2)",
             rusqlite::params![req.mobile_device_id, now],
         )?;
+
+        conn.execute(
+            "INSERT OR IGNORE INTO sync_state (id, first_successful_sync_at) VALUES ('local', NULL)",
+            [],
+        )?;
+        conn.execute(
+            "UPDATE sync_state SET first_successful_sync_at = NULL WHERE id = 'local'",
+            [],
+        )?;
     }
 
     Ok(Json(PairingCompleteResponse {
@@ -391,7 +400,11 @@ async fn handle_pull_push(
         .max()
         .unwrap_or(req.known_acked_local_cursor);
 
-    
+    let _ = conn.execute(
+        "UPDATE sync_state SET first_successful_sync_at = COALESCE(first_successful_sync_at, ?1) WHERE id = 'local'",
+        rusqlite::params![now],
+    );
+
     Ok(Json(PullPushResponse {
         accepted_local_cursor,
         remote_cursor: new_remote_cursor,

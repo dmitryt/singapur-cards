@@ -492,6 +492,12 @@ export type PairedDevice = {
   lastSyncAt: string | null;
 };
 
+/** Payload from `sync_get_paired_devices`. */
+export type PairedDevicesSnapshot = {
+  devices: PairedDevice[];
+  firstSuccessfulSyncAt: string | null;
+};
+
 // ── Sync command wrappers ─────────────────────────────────────────────────────
 
 export async function syncStartPairing(): Promise<CommandResult<PairingModeInfo>> {
@@ -503,9 +509,9 @@ export async function syncStartPairing(): Promise<CommandResult<PairingModeInfo>
   }
 }
 
-export async function syncGetPairedDevices(): Promise<CommandResult<PairedDevice[]>> {
+export async function syncGetPairedDevices(): Promise<CommandResult<PairedDevicesSnapshot>> {
   try {
-    const data = await invoke<PairedDevice[]>("sync_get_paired_devices");
+    const data = await invoke<PairedDevicesSnapshot>("sync_get_paired_devices");
     return { ok: true, data };
   } catch (e) {
     return { ok: false, code: "UNEXPECTED_ERROR", message: String(e) };

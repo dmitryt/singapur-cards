@@ -266,6 +266,18 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
         );",
     )?;
 
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS sync_state (
+            id TEXT PRIMARY KEY NOT NULL DEFAULT 'local',
+            first_successful_sync_at TEXT
+        );",
+    )?;
+
+    conn.execute(
+        "INSERT OR IGNORE INTO sync_state (id, first_successful_sync_at) VALUES ('local', NULL)",
+        [],
+    )?;
+
     // Desktop-side sync triggers (same tables as mobile, mirrors mobile trigger logic)
     conn.execute_batch(
         "CREATE TRIGGER IF NOT EXISTS sync_trig_insert_cards

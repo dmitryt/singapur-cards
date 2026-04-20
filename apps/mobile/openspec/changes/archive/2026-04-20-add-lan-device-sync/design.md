@@ -5,7 +5,7 @@ The mobile app uses `expo-sqlite` with Drizzle-managed schema definitions and lo
 ## Goals / Non-Goals
 
 **Goals:**
-- Pair mobile with desktop on the same local network using QR or manual entry
+- Pair mobile with desktop on the same local network using manual entry
 - Persist a trusted desktop identity so future sync sessions do not require repeated pairing
 - Support manual, foreground, bidirectional sync while both apps are open
 - Synchronize normal SQLite row data for cards, collections, memberships, review events, and related study metadata
@@ -59,15 +59,15 @@ This keeps the first end-to-end implementation focused on the highest-value stud
 
 **Alternative rejected**: WebRTC peer-to-peer transport. It adds signaling, NAT traversal, and more complicated lifecycle handling with little user-visible benefit for same-LAN manual sync.
 
-### Discovery: QR and manual entry only
+### Discovery: manual entry only
 
-**Decision**: v1 supports QR scanning and manual entry of connection details or pairing code. It does not require mDNS or Bonjour auto-discovery.
+**Decision**: v1 supports manual entry of connection details and pairing code. It does not require QR scanning, mDNS, or Bonjour auto-discovery.
 
-**Why**: This is the simplest reliable flow and avoids native discovery dependencies in Expo during the first implementation.
+**Why**: This keeps the first implementation simple, avoids camera permissions and QR dependencies on mobile, and aligns with the current product flow.
 
 ### Pairing model: short-lived pairing token, long-lived trusted peer
 
-**Decision**: The desktop app enters pairing mode and displays a QR payload containing its device ID, host, port, short-lived pairing token, and expiry timestamp. The mobile app scans or enters the same details manually, then exchanges device identity with the desktop and stores a long-lived trusted peer record locally.
+**Decision**: The desktop app enters pairing mode and displays its host, port, short-lived pairing token, and expiry timestamp. The mobile app enters those details manually, then exchanges device identity with the desktop and stores a long-lived trusted peer record locally.
 
 **Why**: The short-lived token keeps initial pairing simple while still preventing arbitrary LAN devices from syncing without user consent. Persisting trusted peer records avoids repeated re-pairing.
 
@@ -151,7 +151,7 @@ Recommended `sync_cursors` fields:
 
 The exact wire format can evolve, but the first implementation should align around these desktop-hosted endpoints:
 
-- `POST /pairing/start` — desktop enters pairing mode and returns the payload used to render the QR code
+- `POST /pairing/start` — desktop enters pairing mode and returns the host/port/code payload shown for manual entry
 - `POST /pairing/complete` — mobile submits pairing token plus its device identity; desktop returns a long-lived trust credential
 - `POST /sync/pull-push` — mobile sends unsynced local changes and its current cursor, desktop applies them, then returns remote changes since that cursor
 
@@ -178,7 +178,7 @@ Recommended sync response body:
 - `serverTime`
 - `conflictsSummary`
 
-Recommended QR payload fields:
+Recommended pairing payload fields:
 
 - `desktopDeviceId`
 - `desktopDisplayName`
@@ -209,7 +209,11 @@ The first implementation should follow this sequence:
 
 ## Risks / Trade-offs
 
-- **No auto-discovery in v1** → Users must scan or manually enter pairing details. Accepted to keep the first build simpler.
+- **No auto-discovery in v1** → Users must manually enter pairing details. Accepted to keep the first build simpler.
+
+## Deferred Scope
+
+- **QR pairing (v1.1+)**: camera-based QR scan can be added later as a convenience path that feeds the same host/port/code pairing handshake.
 - **Manual sync only** → Data may remain stale until the user taps Sync. Accepted for the first release because background sync would multiply complexity on both mobile platforms.
 - **Application-managed change tracking** → Every synced mutation must consistently record a change entry. This increases implementation discipline but keeps the sync engine understandable and testable.
 - **LWW on editable rows** → Some simultaneous edits may overwrite each other. Accepted because the current data model is mostly single-user study data, not collaborative multi-user content.

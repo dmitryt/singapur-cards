@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "styled-components";
 import { theme } from "../theme/theme";
 import { DesktopSyncSection } from "../features/sync/DesktopSyncSection";
+import type { PairedDevice, PairedDevicesSnapshot } from "../lib/tauri/commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
@@ -35,13 +36,22 @@ const mockPairingInfo = {
   displayName: "Desktop",
 };
 
+const emptyDevices: PairedDevicesSnapshot = { devices: [], firstSuccessfulSyncAt: null };
+
+function snapshot(
+  devices: PairedDevice[],
+  firstSuccessfulSyncAt: string | null = null,
+): PairedDevicesSnapshot {
+  return { devices, firstSuccessfulSyncAt };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("DesktopSyncSection — on-mount states", () => {
   it("renders idle state when no paired devices", async () => {
-    mockInvoke.mockResolvedValueOnce([]); // sync_get_paired_devices
+    mockInvoke.mockResolvedValueOnce(emptyDevices); // sync_get_paired_devices
     renderSection();
     await waitFor(() => {
       expect(screen.getByText(/Pair a mobile device/i)).toBeTruthy();
@@ -50,7 +60,7 @@ describe("DesktopSyncSection — on-mount states", () => {
   });
 
   it("renders paired state when devices exist", async () => {
-    mockInvoke.mockResolvedValueOnce([mockDevice]); // sync_get_paired_devices
+    mockInvoke.mockResolvedValueOnce(snapshot([mockDevice])); // sync_get_paired_devices
     renderSection();
     await waitFor(() => {
       expect(screen.getByText("My iPhone")).toBeTruthy();
@@ -68,7 +78,7 @@ describe("DesktopSyncSection — on-mount states", () => {
   });
 
   it("shows 'Never synced' for device with null lastSyncAt", async () => {
-    mockInvoke.mockResolvedValueOnce([{ ...mockDevice, lastSyncAt: null }]);
+    mockInvoke.mockResolvedValueOnce(snapshot([{ ...mockDevice, lastSyncAt: null }]));
     renderSection();
     await waitFor(() => {
       expect(screen.getByText("Never synced")).toBeTruthy();
@@ -79,9 +89,9 @@ describe("DesktopSyncSection — on-mount states", () => {
 describe("DesktopSyncSection — Start Pairing flow", () => {
   it("transitions to pairing view and shows code + countdown", async () => {
     mockInvoke
-      .mockResolvedValueOnce([]) // on-mount: sync_get_paired_devices
+      .mockResolvedValueOnce(emptyDevices) // on-mount: sync_get_paired_devices
       .mockResolvedValueOnce(mockPairingInfo) // sync_start_pairing
-      .mockResolvedValueOnce([]); // pre-pairing device count
+      .mockResolvedValueOnce(emptyDevices); // pre-pairing device count
 
     renderSection();
     await waitFor(() => screen.getByText("Start Pairing"));
@@ -98,9 +108,9 @@ describe("DesktopSyncSection — Start Pairing flow", () => {
 describe("DesktopSyncSection — Forget flow", () => {
   it("removes device after Forget confirmation", async () => {
     mockInvoke
-      .mockResolvedValueOnce([mockDevice]) // on-mount
+      .mockResolvedValueOnce(snapshot([mockDevice])) // on-mount
       .mockResolvedValueOnce(undefined) // sync_forget_device
-      .mockResolvedValueOnce([]); // re-fetch after forget
+      .mockResolvedValueOnce(emptyDevices); // re-fetch after forget
 
     renderSection();
     await waitFor(() => screen.getByText("Forget"));

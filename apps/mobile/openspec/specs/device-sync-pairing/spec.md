@@ -1,15 +1,9 @@
-## ADDED Requirements
-
 ### Requirement: Mobile app can pair with a desktop app on the same LAN
-The app SHALL allow a user to pair a mobile device with a desktop app that is on the same local network by either scanning a QR code shown on desktop or manually entering the pairing details shown by desktop.
-
-#### Scenario: Pair by scanning desktop QR code
-- **WHEN** the desktop app is in pairing mode and the user scans its QR code from the mobile app
-- **THEN** the mobile app reads the pairing payload, validates that it has not expired, and attempts to connect to the advertised desktop host and port
+The app SHALL allow a user to pair a mobile device with a desktop app that is on the same local network by manually entering the pairing details shown by desktop.
 
 #### Scenario: Pair by manual entry
 - **WHEN** the desktop app shows pairing details and the user enters them manually on mobile
-- **THEN** the mobile app attempts the same pairing flow without requiring QR scan support
+- **THEN** the mobile app validates the input and attempts pairing using the advertised desktop host, port, and short-lived pairing code
 
 ### Requirement: Pairing establishes a trusted desktop identity
 The app SHALL persist the paired desktop's device identity and the credential required for future authenticated sync sessions after pairing completes successfully. The completed pairing credential SHALL be bound to the specific mobile and desktop device identities and SHALL NOT reuse the short-lived pairing token as the long-lived sync credential.

@@ -207,5 +207,7 @@ export const syncState = sqliteTable('sync_state', {
   lastSyncResult:   text('last_sync_result', { enum: ['success', 'failure'] }),
   lastSyncError:    text('last_sync_error'),
   lastRequestId:    text('last_request_id'),
+  /** Set once after the first successful sync for this trust period; cleared on re-pair / forget / revoke. */
+  firstSuccessfulSyncAt: text('first_successful_sync_at'),
   updatedAt:        text('updated_at').notNull(),
 });
